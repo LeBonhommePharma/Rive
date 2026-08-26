@@ -7,6 +7,7 @@ const MAX_REALTIME_DETOURS = 500;
 const MAX_REALTIME_SHAPES = 500;
 const MAX_REALTIME_SHAPE_CHARS = 200_000;
 const MAX_REALTIME_TEXT = 128;
+const MAX_REALTIME_DESCRIPTION = 512;
 const MAX_TEMP_STOPS = 500;
 
 export type TripUpdate = {
@@ -37,6 +38,9 @@ export type Detour = {
   skipStopIds?: string[];
   extraMinutes?: number;
   tempStops?: TempStop[];
+  title?: string;
+  description?: string;
+  sourceUrl?: string;
   from?: number;
   until?: number;
 };
@@ -138,8 +142,8 @@ function num(value: unknown): number | undefined {
   return Number.isFinite(n) ? n : undefined;
 }
 
-function str(value: unknown): string | undefined {
-  return typeof value === "string" && value ? value.slice(0, MAX_REALTIME_TEXT) : undefined;
+function str(value: unknown, max = MAX_REALTIME_TEXT): string | undefined {
+  return typeof value === "string" && value ? value.slice(0, max) : undefined;
 }
 
 export function parseTempStops(raw: unknown): TempStop[] {
@@ -241,6 +245,9 @@ export function parseRealtimePayload(raw: unknown): RealtimeBundle {
         skipStopIds: skip,
         extraMinutes: num(row.extraMinutes),
         tempStops: temps,
+        title: str(row.title),
+        description: str(row.description ?? row.text ?? row.summary, MAX_REALTIME_DESCRIPTION),
+        sourceUrl: str(row.sourceUrl ?? row.source_url ?? row.url),
         from: window.from,
         until: window.until,
       });

@@ -1,0 +1,74 @@
+name: Refresh official GTFS
+
+# Keep the tracked atlas current independently of the publish gate. The
+# publish workflow only composes verified bytes; this workflow refreshes the
+# public source data and then explicitly starts that gate after its commit.
+on:
+  schedule:
+    - cron: "17 */6 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  actions: write
+
+concurrency:
+  group: refresh-gtfs
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      # The ingest script uses only Node built-ins and the checked-in catalog;
+      # installing the Next.js dependency tree is unnecessary for this job.
+      - name: Download and pack official feeds
+        run: node --max-old-space-size=8192 scripts/ingest-gtfs.mjs --force
+
+      - name: Keep the index timestamp stable when feeds did not change
+        run: |
+          node --input-type=module <<'NODE'
+          import { execFileSync } from "node:child_process";
+          import { readFileSync, writeFileSync } from "node:fs";
+
+          const before = JSON.parse(execFileSync("git", ["show", "HEAD:public/data/index.json"], { encoding: "utf8" }));
+          const after = JSON.parse(readFileSync("public/data/index.json", "utf8"));
+          const comparable = (value) => {
+            const clone = structuredClone(value);
+            delete clone.builtAt;
+            return JSON.stringify(clone);
+          };
+          if (comparable(before) === comparable(after)) {
+            after.builtAt = before.builtAt;
+            writeFileSync("public/data/index.json", `${JSON.stringify(after, null, 2)}\n`);
+          }
+          NODE
+
+      - name: Commit changed atlas
+        id: commit
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- public/data; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Official feeds unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add public/data
+          git commit -m "Refresh official GTFS data"
+          git push origin main
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Start the transit deploy gate
+        if: steps.commit.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh workflow run deploy.yml --repo "$GITHUB_REPOSITORY" --ref main

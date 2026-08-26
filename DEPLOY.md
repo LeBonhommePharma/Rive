@@ -24,7 +24,9 @@ is the single definition of that composition:
 | — (apex-local, preserved) | `transit/README.md` |
 
 `public/data/` (39 MB GTFS atlas) is **tracked in git**, so publishing needs no
-GTFS ingest, no `.cache/`, and no feed credentials. Do not add a re-ingest step.
+GTFS ingest, no `.cache/`, and no feed credentials. The separate
+`update-gtfs.yml` workflow refreshes the official feeds every six hours; the
+publish gate itself remains a pure compose-and-verify step.
 
 The Next.js app is **not** published. `next build` output never reaches the site.
 
@@ -126,6 +128,14 @@ it with `|| true`.
   workflow. Optional `ref` input publishes any Transit commit or branch.
 - **Dry run** — same, with `dry_run: true`. Builds and runs Gates A and B, and
   commits nothing.
+
+### Source refresh
+
+`update-gtfs.yml` runs every six hours and is also available through
+Actions → **Refresh official GTFS** → Run workflow. It downloads the current
+feeds listed in `src/lib/registry.json`, commits only semantic data changes,
+and dispatches `deploy.yml` explicitly because a commit made with
+`GITHUB_TOKEN` does not start another workflow by itself.
 
 The workflow is idempotent: if the composed tree already equals `transit/`, it
 records "already in sync" and exits green without a commit. Re-running is safe.
