@@ -1,7 +1,11 @@
 import type { Atlas } from "./atlas/types";
 import { weekdayMon0, yyyymmdd } from "./time";
 
-export function activeServiceIndexes(atlas: Atlas, date: Date): Set<number> {
+/** Only the calendar half of the atlas is read, so a calendar-only slice is enough. */
+export function activeServiceIndexes(
+  atlas: Pick<Atlas, "services" | "calendar" | "exceptions">,
+  date: Date,
+): Set<number> {
   const stamp = yyyymmdd(date);
   const dow = weekdayMon0(date);
   const byName = new Map(atlas.services.map((id, i) => [id, i]));

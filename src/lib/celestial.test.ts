@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { pathToFileURL } from "node:url";
 import { describe, it } from "node:test";
-import { daytimeClock, moonlightClock, nightClock } from "./clock";
+import { skyDayClock, skyMoonlightClock, skyNightClock } from "./clock";
 import { moonAzAlt, moonRiseSet, observerLight, sunAzAlt } from "./celestial";
 import {
   lightVectorForMap,
@@ -69,8 +69,8 @@ function assertHorizontal(row: Hor | null): asserts row is Hor {
 describe("celestial sun and moon", () => {
   it("puts the sun above Quebec and Montreal by afternoon and below after local night", () => {
     for (const place of [QC, MTL]) {
-      const day = sunAzAlt(place.lat, place.lon, daytimeClock());
-      const night = sunAzAlt(place.lat, place.lon, nightClock());
+      const day = sunAzAlt(place.lat, place.lon, skyDayClock());
+      const night = sunAzAlt(place.lat, place.lon, skyNightClock());
       assertHorizontal(day);
       assertHorizontal(night);
       assert.ok(day.altitude > 0, `afternoon sun should be up at ${place.lat}`);
@@ -80,17 +80,17 @@ describe("celestial sun and moon", () => {
 
   it("lights with the sun by day and the moon at night when the moon is up", () => {
     for (const place of [QC, MTL]) {
-      const day = observerLight(place.lat, place.lon, daytimeClock());
+      const day = observerLight(place.lat, place.lon, skyDayClock());
       assert.ok(day);
       assert.equal(day.source, "sun");
       assert.ok(day.altitude > 0);
-      const sunNight = sunAzAlt(place.lat, place.lon, nightClock());
+      const sunNight = sunAzAlt(place.lat, place.lon, skyNightClock());
       assert.ok(sunNight && sunNight.altitude < 0);
-      const moonlit = observerLight(place.lat, place.lon, moonlightClock());
+      const moonlit = observerLight(place.lat, place.lon, skyMoonlightClock());
       assert.ok(moonlit);
       assert.equal(moonlit.source, "moon");
       assert.ok(moonlit.altitude > 0);
-      const nightMoon = findNightMoon({ sunAzAlt, moonAzAlt, moonRiseSet, observerLight }, place.lat, place.lon, daytimeClock());
+      const nightMoon = findNightMoon({ sunAzAlt, moonAzAlt, moonRiseSet, observerLight }, place.lat, place.lon, skyDayClock());
       assert.ok(nightMoon, "moon should be above the horizon at some night instant");
       assert.equal(nightMoon.body.source, "moon");
       assert.ok(nightMoon.body.altitude > 0);
@@ -99,7 +99,7 @@ describe("celestial sun and moon", () => {
 
   it("keeps moon altitude near the horizon at rise and set and higher while the moon is up", () => {
     for (const place of [QC, MTL]) {
-      const rs = moonRiseSet(place.lat, place.lon, daytimeClock());
+      const rs = moonRiseSet(place.lat, place.lon, skyDayClock());
       assert.ok(rs);
       assert.ok(rs.rise instanceof Date);
       assert.ok(rs.set instanceof Date);
@@ -117,7 +117,7 @@ describe("celestial sun and moon", () => {
   });
 
   it("refuses junk lat/lon/time instead of inventing a body", () => {
-    const t = daytimeClock();
+    const t = skyDayClock();
     assert.equal(sunAzAlt(Number.NaN, QC.lon, t), null);
     assert.equal(sunAzAlt(QC.lat, 200, t), null);
     assert.equal(moonAzAlt(QC.lat, QC.lon, "nope"), null);
@@ -129,14 +129,14 @@ describe("celestial sun and moon", () => {
 
   it("drives the shipped static celestial module on the same Quebec clock", async () => {
     const { celestial } = await loadShipped();
-    const day = celestial.sunAzAlt(QC.lat, QC.lon, daytimeClock());
-    const src = celestial.observerLight(QC.lat, QC.lon, daytimeClock());
+    const day = celestial.sunAzAlt(QC.lat, QC.lon, skyDayClock());
+    const src = celestial.observerLight(QC.lat, QC.lon, skyDayClock());
     assertHorizontal(day);
     assert.ok(day.altitude > 0);
     assert.ok(src);
     assert.equal(src.source, "sun");
-    assert.equal(celestial.observerLight(QC.lat, Number.NaN, daytimeClock()), null);
-    const rs = celestial.moonRiseSet(QC.lat, QC.lon, daytimeClock());
+    assert.equal(celestial.observerLight(QC.lat, Number.NaN, skyDayClock()), null);
+    const rs = celestial.moonRiseSet(QC.lat, QC.lon, skyDayClock());
     assert.ok(rs && rs.rise && rs.set);
     const atRise = celestial.moonAzAlt(QC.lat, QC.lon, rs.rise);
     assertHorizontal(atRise);
@@ -151,7 +151,7 @@ describe("map shade from heading and face", () => {
     assert.ok(east0 && east180);
     assert.ok(east0.x > 0.4);
     assert.ok(east180.x < -0.4);
-    const body = observerLight(QC.lat, QC.lon, daytimeClock());
+    const body = observerLight(QC.lat, QC.lon, skyDayClock());
     assert.ok(body);
     const a = mapLightDirection(body.azimuth, body.altitude, 0);
     const b = mapLightDirection(body.azimuth, body.altitude, 180);
