@@ -72,3 +72,46 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run deploy.yml --repo "$GITHUB_REPOSITORY" --ref main
+
+      # A city the ingest had to skip is a KNOWN upstream gap with a working
+      # fallback — that city keeps its last atlas, which expires on its own
+      # GTFS calendar instead of going stale-but-plausible. Same call as the
+      # APEX_DISPATCH_TOKEN warning in deploy.yml: warn loudly, stay green, so
+      # a red run still means something. A run where NO city could be built
+      # already failed the step above, because that is our breakage, not
+      # theirs.
+      - name: Report skipped cities
+        if: always()
+        run: |
+          node --input-type=module <<'NODE'
+          import { appendFileSync, readFileSync } from "node:fs";
+
+          let index;
+          try {
+            index = JSON.parse(readFileSync("public/data/index.json", "utf8"));
+          } catch {
+            process.exit(0);
+          }
+          const failures = Array.isArray(index.refreshFailures) ? index.refreshFailures : [];
+          const summary = process.env.GITHUB_STEP_SUMMARY;
+          if (failures.length === 0) {
+            if (summary) appendFileSync(summary, "All cities refreshed.\n");
+            process.exit(0);
+          }
+          const lines = ["### Cities skipped this refresh", ""];
+          for (const row of failures) {
+            const feed = row.feed ? ` — feed \`${row.feed}\`${row.agency ? ` (${row.agency})` : ""}` : "";
+            console.log(`::warning title=Skipped ${row.city}::${row.message}`);
+            lines.push(`- **${row.city}**${feed}`);
+            if (row.url) lines.push(`  - \`${row.url}\``);
+            lines.push(`  - ${row.message}`);
+          }
+          lines.push(
+            "",
+            "These cities kept their previous atlas. They are named in",
+            "`refreshFailures` in `public/data/index.json`, and their schedules",
+            "go blank on their own GTFS calendar end rather than serving wrong",
+            "departure times.",
+          );
+          if (summary) appendFileSync(summary, `${lines.join("\n")}\n`);
+          NODE

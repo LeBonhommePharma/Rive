@@ -30,6 +30,7 @@ import {
   selectRegions,
 } from "./gtfs-catalog.mjs";
 import { assertCoverageIncludesToday } from "./gtfs-coverage.mjs";
+import { buildIndexPayload, describeRefreshFailure } from "./gtfs-skip.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CACHE = join(ROOT, ".cache", "gtfs");
@@ -748,17 +749,47 @@ function collectOnDiskMetas(outDir, regions) {
   return ordered;
 }
 
-function writeIndexFromDisk(outDir, regions) {
+function writeIndexFromDisk(outDir, regions, failures = []) {
   writeFileSync(
     join(outDir, "index.json"),
-    JSON.stringify(
-      {
-        builtAt: new Date().toISOString(),
-        cities: collectOnDiskMetas(outDir, regions),
-      },
-      null,
-      2,
-    ),
+    JSON.stringify(buildIndexPayload(new Date().toISOString(), collectOnDiskMetas(outDir, regions), failures), null, 2),
+  );
+}
+
+/**
+ * Build one city, all-or-nothing.
+ *
+ * Nothing is written until every feed has been fetched, merged and passed the
+ * coverage assert, so a city can never land on disk half-built. A feed that
+ * throws is tagged with the feed that broke before it propagates.
+ */
+async function ingestRegion(region, force) {
+  const pieces = [];
+  for (const feed of region.feeds) {
+    try {
+      pieces.push(await ingestFeed(region, feed, force));
+    } catch (error) {
+      if (error && typeof error === "object" && !error.feed) error.feed = feed;
+      throw error;
+    }
+  }
+  const merged = mergePieces(region, pieces);
+  await runCoverageAssert(merged);
+  const dest = join(OUT, region.city);
+  mkdirSync(dest, { recursive: true });
+  writeJson(join(dest, "atlas.json"), {
+    meta: merged.meta,
+    routes: merged.routes,
+    stops: merged.stops,
+    calendar: merged.calendar,
+    exceptions: merged.exceptions,
+    transfers: merged.transfers,
+    services: merged.services,
+  });
+  writeJson(join(dest, "timetable.json"), merged.timetable);
+  writeJson(join(dest, "meta.json"), merged.meta);
+  console.log(
+    `  wrote ${region.city}: ${merged.routes.length} routes, ${merged.stops.length} stops, ${merged.services.length} services`,
   );
 }
 
@@ -767,31 +798,42 @@ async function main() {
   const catalog = loadCatalogFromFile(REGISTRY_PATH);
   const regions = regionsFromCatalog(catalog);
   const wanted = selectRegions(regions, args.city);
+  const failures = [];
+  let built = 0;
+
   for (const region of wanted) {
-    const pieces = [];
-    for (const feed of region.feeds) {
-      pieces.push(await ingestFeed(region, feed, args.force));
+    try {
+      await ingestRegion(region, args.force);
+      built += 1;
+    } catch (error) {
+      // A dead feed belongs to one city. RTL Longueuil returning 403 must not
+      // stop Québec, Sherbrooke and Trois-Rivières — none of which use it —
+      // from refreshing. This city keeps its previous atlas, which expires on
+      // its own GTFS calendar rather than drifting into plausible-but-wrong,
+      // and the reason is published in index.json.
+      failures.push(describeRefreshFailure(region.city, error?.feed, error, ROOT));
+      console.error(`  !! skipped ${region.city}: ${failures.at(-1).message}`);
     }
-    const merged = mergePieces(region, pieces);
-    await runCoverageAssert(merged);
-    const dest = join(OUT, region.city);
-    mkdirSync(dest, { recursive: true });
-    writeJson(join(dest, "atlas.json"), {
-      meta: merged.meta,
-      routes: merged.routes,
-      stops: merged.stops,
-      calendar: merged.calendar,
-      exceptions: merged.exceptions,
-      transfers: merged.transfers,
-      services: merged.services,
-    });
-    writeJson(join(dest, "timetable.json"), merged.timetable);
-    writeJson(join(dest, "meta.json"), merged.meta);
-    console.log(
-      `  wrote ${region.city}: ${merged.routes.length} routes, ${merged.stops.length} stops, ${merged.services.length} services`,
-    );
   }
-  writeIndexFromDisk(OUT, regions);
+
+  // Every city failing is not one agency's outage — it is our breakage, or the
+  // network is gone. Change nothing and fail, so a broken run cannot quietly
+  // republish the same bytes as if it had checked them.
+  if (built === 0) {
+    const detail = failures.map((row) => `${row.city}: ${row.message}`).join("; ");
+    throw new Error(`No city could be rebuilt (${detail || "no regions selected"}).`);
+  }
+
+  writeIndexFromDisk(OUT, regions, failures);
+
+  if (failures.length > 0) {
+    console.log(`\nAtlas ready with ${failures.length} city refresh failure(s):`);
+    for (const row of failures) {
+      console.log(`  ${row.city}${row.feed ? ` (${row.feed})` : ""}: ${row.message}`);
+    }
+    console.log("Those cities kept their previous atlas; see refreshFailures in public/data/index.json.");
+    return;
+  }
   console.log("\nAtlas ready.");
 }
 
