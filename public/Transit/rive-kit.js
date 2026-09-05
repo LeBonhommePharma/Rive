@@ -541,6 +541,30 @@ export function cityAfterHereSample(input) {
   return { city: detected || explicit, snap: wantSnap };
 }
 
+const PACKED_CITY_NAMES = {
+  quebec: "Québec",
+  montreal: "Montréal",
+  sherbrooke: "Sherbrooke",
+  "trois-rivieres": "Trois-Rivières",
+};
+
+export const ATLAS_GAP_TEXT =
+  "Cet endroit n'est pas dans l'atlas. Pour l'ajouter, inscris-le dans registry.json puis lance npm run ingest.";
+
+export function packedCityName(id, names) {
+  if (names && typeof names === "object" && typeof names[id] === "string" && names[id]) return names[id];
+  if (typeof PACKED_CITY_NAMES[id] === "string") return PACKED_CITY_NAMES[id];
+  return typeof id === "string" && id ? id : "";
+}
+
+/** Pan-to-load copy. Detection stays in the app via cityForPoint(camera). */
+export function viewportCityHint(detected, currentCity, names) {
+  if (!detected) return { kind: "outside", text: ATLAS_GAP_TEXT };
+  if (detected === currentCity) return { kind: "current", city: detected };
+  const name = packedCityName(detected, names);
+  return { kind: "offer", city: detected, name, label: `Charger ${name}` };
+}
+
 export const MIX_FAMILIES = [
   "marche",
   "velo",

@@ -171,7 +171,7 @@ describe("hostile user input", () => {
     assert.match(html, /id="heading"/);
     assert.match(html, /id="trips"/);
     assert.match(html, /Heure 24 h|placeholder="16:00"/);
-    assert.match(src, /Démarrer/);
+    assert.match(src, /Aller/);
     assert.match(src, /annotateTimeGaps/);
     assert.match(src, /parseOverpassBuildings|buildings/);
     assert.match(src, /searchPlaces|searchImportance|searchPois/);
