@@ -558,11 +558,24 @@ export function packedCityName(id, names) {
 }
 
 /** Pan-to-load copy. Detection stays in the app via cityForPoint(camera). */
-export function viewportCityHint(detected, currentCity, names) {
+export function viewportCityHint(detected, currentCity, names, shippedIds) {
   if (!detected) return { kind: "outside", text: ATLAS_GAP_TEXT };
   if (detected === currentCity) return { kind: "current", city: detected };
   const name = packedCityName(detected, names);
-  return { kind: "offer", city: detected, name, label: `Charger ${name}` };
+  if (shippedIds) {
+    const shipped = new Set(shippedIds);
+    if (!shipped.has(detected)) {
+      return {
+        kind: "ingest",
+        city: detected,
+        name,
+        label: `Ajouter ${name}`,
+        shipped: false,
+        text: ATLAS_GAP_TEXT,
+      };
+    }
+  }
+  return { kind: "offer", city: detected, name, label: `Charger ${name}`, shipped: true };
 }
 
 export const MIX_FAMILIES = [

@@ -15,8 +15,7 @@ export const TRIP_ROAD_PAINT: { "line-color": string; "line-width": number; "lin
 };
 
 export function mapPoint(point: Place): [number, number] {
-  if (point.stopId) return [point.lon, point.lat];
-  return [Math.round(point.lon * 100) / 100, Math.round(point.lat * 100) / 100];
+  return [point.lon, point.lat];
 }
 
 /** GeoJSON for an itinerary. Road/walk/bike use from→to; transit uses the encoded line. */

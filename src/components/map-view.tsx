@@ -16,6 +16,13 @@ import {
 
 const STYLE = "https://tiles.openfreemap.org/styles/positron";
 
+export type MapCamera = {
+  lon: number;
+  lat: number;
+  zoom: number;
+  user: boolean;
+};
+
 type Props = {
   city: CityId;
   atlas: Atlas | null;
@@ -25,6 +32,7 @@ type Props = {
   itinerary?: Itinerary | null;
   onStop: (stop: AtlasStop) => void;
   onRoute: (routeId: string) => void;
+  onCamera?: (camera: MapCamera) => void;
 };
 
 type LineProps = {
@@ -97,18 +105,21 @@ export function MapView({
   itinerary,
   onStop,
   onRoute,
+  onCamera,
 }: Props) {
   const rootRef = useRef<HTMLDivElement>(null);
   const mapRef = useRef<MapLibreMap | null>(null);
   const atlasRef = useRef(atlas);
   const onStopRef = useRef(onStop);
   const onRouteRef = useRef(onRoute);
+  const onCameraRef = useRef(onCamera);
 
   useEffect(() => {
     atlasRef.current = atlas;
     onStopRef.current = onStop;
     onRouteRef.current = onRoute;
-  }, [atlas, onStop, onRoute]);
+    onCameraRef.current = onCamera;
+  }, [atlas, onStop, onRoute, onCamera]);
 
   useEffect(() => {
     if (!rootRef.current || mapRef.current) return;
@@ -265,6 +276,15 @@ export function MapView({
         }
       };
       map.on("click", pick);
+      map.on("moveend", (event: maplibregl.MapLibreEvent) => {
+        const center = map.getCenter();
+        onCameraRef.current?.({
+          lon: center.lng,
+          lat: center.lat,
+          zoom: map.getZoom(),
+          user: Boolean((event as { originalEvent?: unknown }).originalEvent),
+        });
+      });
       for (const layer of ["rive-stop-dots", "rive-stations", "rive-metro", "rive-frequent"]) {
         map.on("mouseenter", layer, () => {
           map.getCanvas().style.cursor = "pointer";
