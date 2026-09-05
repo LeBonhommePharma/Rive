@@ -1,0 +1,17 @@
+{
+  "name": "Rive",
+  "install": "npm ci",
+  "terminals": [
+    {
+      "name": "next-dev",
+      "command": "npm run dev",
+      "description": "Next.js dev server for the Rive transit atlas. Serves / (Next app) and /Transit (standalone static atlas) on port 3000."
+    }
+  ],
+  "ports": [
+    {
+      "name": "next-dev",
+      "port": 3000
+    }
+  ]
+}
