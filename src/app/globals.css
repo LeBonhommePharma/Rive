@@ -2,16 +2,50 @@
 @import "maplibre-gl/dist/maplibre-gl.css";
 
 :root {
-  --ink: #1a2330;
-  --ink-soft: #475569;
+  --ink: #16202c;
+  --ink-soft: #55677a;
   --paper: #eef2f6;
-  --muted: #475569;
+  --muted: #55677a;
   --sodium: #0e7490;
-  --glass: rgb(248 250 252 / 0.92);
-  --well: rgb(15 23 42 / 0.05);
-  --well-hi: rgb(15 23 42 / 0.09);
-  --hairline: rgb(15 23 42 / 0.12);
+  --gold: #a35a09;
+  --terra: #5b21b6;
+  --glass: rgb(247 250 252 / 0.92);
+  --stage: #dce4ec;
+  --chip: #0e7490;
+  --chip-ink: #f0fdfa;
+  --well: rgb(14 116 144 / 0.07);
+  --well-hi: rgb(14 116 144 / 0.12);
+  --hairline: rgb(14 116 144 / 0.2);
+  --sheen: inset 0 1px 0 rgb(255 255 255 / 0.6);
+  --radius: 12px;
+  --radius-md: 8px;
+  --blur: 16px;
   --ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --z-ui: 2;
+  --z-sheet: 6;
+  --z-hud: 8;
+  color-scheme: light;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ink: #e4eef6;
+    --ink-soft: #8fa4b4;
+    --paper: #08091a;
+    --muted: #8fa4b4;
+    --sodium: #45e0a8;
+    --gold: #ff9300;
+    --terra: #a78bfa;
+    --glass: rgb(17 18 38 / 0.86);
+    --stage: #0d1219;
+    --chip: #45e0a8;
+    --chip-ink: #05222b;
+    --well: rgb(69 224 168 / 0.07);
+    --well-hi: rgb(69 224 168 / 0.13);
+    --hairline: rgb(69 224 168 / 0.18);
+    --sheen: inset 0 1px 0 rgb(255 255 255 / 0.03);
+    color-scheme: dark;
+  }
 }
 
 @theme inline {
@@ -22,6 +56,8 @@
   --color-hairline: var(--hairline);
   --color-well: var(--well);
   --color-well-hi: var(--well-hi);
+  --color-chip: var(--chip);
+  --color-chip-ink: var(--chip-ink);
   --font-sans: "Outfit", "Outfit Fallback", ui-sans-serif, system-ui, sans-serif;
   --font-mono: "IBM Plex Mono", "IBM Plex Mono Fallback", ui-monospace, monospace;
 }
@@ -58,13 +94,141 @@ body {
   background: var(--glass);
   color: var(--ink);
   border: 1px solid var(--hairline);
-  box-shadow: none;
-  backdrop-filter: blur(16px);
+  box-shadow: var(--sheen);
+  backdrop-filter: blur(var(--blur));
+}
+
+.rive-chip {
+  display: inline-flex;
+  min-width: 2.65rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 3px;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  line-height: 1.2;
+}
+
+.rive-chip.on {
+  outline: 2px solid var(--sodium);
+  outline-offset: 2px;
+}
+
+button.rive-chip {
+  cursor: pointer;
+  border: 0;
+}
+
+.rive-aller {
+  display: flex;
+  width: 100%;
+  min-height: 52px;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: var(--radius);
+  background: var(--chip);
+  color: var(--chip-ink);
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  cursor: pointer;
+}
+
+.rive-aller:disabled {
+  opacity: 0.35;
+  cursor: default;
+}
+
+.rive-steps {
+  margin: 0.75rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.rive-step {
+  display: flex;
+  gap: 0.7rem;
+  align-items: flex-start;
+  padding: 0.55rem 0;
+  border-top: 1px solid var(--hairline);
+}
+
+.rive-step p {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+.rive-clocks,
+.rive-access {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--muted);
+}
+
+.rive-access {
+  display: inline-flex;
+  min-width: 2.65rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  padding: 0.3rem 0.45rem;
+  white-space: nowrap;
+}
+
+.rive-sheet {
+  max-height: min(58dvh, 560px);
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.rive-chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0.7rem 0 0.2rem;
+}
+
+.rive-city-hint {
+  margin-bottom: 0.6rem;
+}
+
+.rive-load-city {
+  display: inline-flex;
+  min-height: 2.5rem;
+  align-items: center;
+  margin-top: 0.45rem;
+  padding: 0 0.85rem;
+  border: 1px solid var(--hairline);
+  border-radius: var(--radius-md);
+  background: var(--well);
+  color: var(--ink);
+  font-size: 0.85rem;
+  font-weight: 650;
+  cursor: pointer;
+}
+
+.rive-load-city::after {
+  content: " →";
+  color: var(--sodium);
+  font-weight: 700;
+}
+
+.rive-grab {
+  width: 2.4rem;
+  height: 4px;
+  margin: 0.2rem auto 0.7rem;
+  border-radius: 99px;
+  background: var(--hairline);
 }
 
 @media (prefers-reduced-transparency: reduce) {
   .glass {
-    background: #eef2f6;
+    background: var(--paper);
     backdrop-filter: none;
   }
 }

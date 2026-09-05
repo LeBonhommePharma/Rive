@@ -111,6 +111,17 @@ enum RiveKitCheck {
     check("iphone shell receives riveLive", shell.contains("riveLive"))
     check("iphone shell receives riveShade", shell.contains("riveShade"))
     check("iphone shell keeps AtlasWebView", shell.contains("struct AtlasWebView"))
+    check("iphone shell paper background", shell.contains("RiveTokens") && shell.contains("paper"))
+    check("iphone shell native board fallback", shell.contains("RiveNativeBoard"))
+
+    let tokensSrc = try String(
+      contentsOf: repoRoot.appendingPathComponent("native/RiveKit/Sources/RiveKit/RiveTokens.swift")
+    )
+    check("rive tokens sodium", tokensSrc.contains("sodium") && tokensSrc.contains("#0e7490"))
+    let chromeSrc = try String(
+      contentsOf: repoRoot.appendingPathComponent("native/RiveKit/Sources/RiveKit/RiveChrome.swift")
+    )
+    check("rive chrome aller", chromeSrc.contains("Aller"))
 
     let toward = SIMD3<Float>(1, 0, 0)
     let away = SIMD3<Float>(-1, 0, 0)
@@ -137,6 +148,7 @@ enum RiveKitCheck {
     let face = try String(contentsOf: faceURL)
     check("watch face pulses LiveDeparture", face.contains("LiveDeparture"))
     check("watch face uses remainMinutes", face.contains("remainMinutes"))
+    check("watch face uses RiveTokens", face.contains("RiveTokens"))
     check("watch face is not a planner", !face.contains("planTrip") && !face.contains("searchAtlas"))
 
     if failed > 0 {

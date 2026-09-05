@@ -1,6 +1,6 @@
-import type { Atlas, Timetable } from "./atlas/types";
+import type { Atlas, AtlasStop, Timetable } from "./atlas/types";
 import { formatClock } from "./time";
-import { departuresAtStop } from "./planner";
+import { departuresAtStop, lookupStopIds } from "./planner";
 import { fold, isFinitePoint, nearbyStops } from "./search";
 import { mergeStopsWithDetours, type Detour } from "./realtime";
 
@@ -141,6 +141,99 @@ export function collapseDueByDirection(rows: LineDue[], limit = 12): LineDue[] {
   }
   unique.sort((a, b) => a.depart - b.depart || a.meters - b.meters);
   return unique;
+}
+
+/** Every official line that serves this pole, including parent/child ids. */
+export function linesAtStop(atlas: Atlas, stop: AtlasStop, timetable?: Timetable | null): NearbyLine[] {
+  const routes = new Map(atlas.routes.map((route) => [route.id, route]));
+  const ids = new Set(stop.routes);
+  if (timetable) {
+    for (const stopId of lookupStopIds(stop)) {
+      for (const entry of timetable[stopId] || []) ids.add(entry.r);
+    }
+  }
+  if (stop.children) {
+    const byId = new Map(atlas.stops.map((item) => [item.id, item]));
+    for (const childId of stop.children) {
+      const child = byId.get(childId);
+      if (child) for (const routeId of child.routes) ids.add(routeId);
+    }
+  }
+  const out: NearbyLine[] = [];
+  for (const routeId of ids) {
+    const route = routes.get(routeId);
+    if (!route || !route.shortName) continue;
+    out.push({
+      routeId: route.id,
+      shortName: route.shortName,
+      color: route.color,
+      textColor: route.textColor,
+      longName: route.longName,
+      type: route.type,
+      meters: 0,
+      stopId: stop.id,
+      towardDest: false,
+    });
+  }
+  out.sort((a, b) => {
+    const metroA = a.type === 1 ? 0 : 1;
+    const metroB = b.type === 1 ? 0 : 1;
+    if (metroA !== metroB) return metroA - metroB;
+    return a.shortName.localeCompare(b.shortName, "fr");
+  });
+  return out;
+}
+
+export type NearbyBoard = {
+  lines: NearbyLine[];
+  due: LineDue[];
+  stop: (AtlasStop & { meters: number }) | null;
+};
+
+/** Nearby chips plus next due per direction, from this point — not from GPS-elsewhere. */
+export function nearbyBoard(
+  atlas: Atlas,
+  timetable: Timetable,
+  here: { lon: number; lat: number },
+  now: number,
+  active: Set<number>,
+  dest?: { lon: number; lat: number } | null,
+  limit = 16,
+): NearbyBoard {
+  if (!isFinitePoint(here)) return { lines: [], due: [], stop: null };
+  const lines = nearbyLines(atlas, here, dest);
+  const near = nearbyStops(atlas.stops, here, 700, 16);
+  const best = new Map<string, LineDue>();
+  for (const stop of near) {
+    const pass = departuresAtStop(atlas, timetable, stop, now, active, 32);
+    for (const row of pass) {
+      const key = `${row.routeId}|${fold(row.headsign)}`;
+      const candidate: LineDue = {
+        routeId: row.routeId,
+        shortName: row.shortName,
+        color: row.color,
+        textColor: row.textColor,
+        stopId: stop.id,
+        stopName: stop.name,
+        meters: stop.meters,
+        headsign: row.headsign,
+        depart: row.depart,
+        wait: row.depart - now,
+        clocks: row.times.map((t) => formatClock(t)),
+      };
+      const prev = best.get(key);
+      if (
+        !prev ||
+        candidate.depart < prev.depart ||
+        (candidate.depart === prev.depart && candidate.meters < prev.meters)
+      ) {
+        best.set(key, candidate);
+      }
+    }
+  }
+  const cap = Math.min(32, Math.max(1, Math.floor(Number.isFinite(limit) ? limit : 16)));
+  const due = [...best.values()].sort((a, b) => a.depart - b.depart || a.meters - b.meters).slice(0, cap);
+  return { lines, due, stop: near[0] ?? null };
 }
 
 export function lineByShortNameOrColor(

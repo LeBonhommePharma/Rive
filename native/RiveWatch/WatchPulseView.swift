@@ -11,30 +11,33 @@ public struct WatchPulseView: View {
   }
 
   public var body: some View {
-    let ink = Color(red: 16 / 255, green: 22 / 255, blue: 28 / 255)
+    let tokens = RiveTokens.night
     TimelineView(.periodic(from: .now, by: 1)) { context in
       let remain = live.remainMinutes(at: context.date)
       ZStack {
-        ink.ignoresSafeArea()
+        tokens.paper.ignoresSafeArea()
         Circle()
           .fill(Color(hex: live.colorHex).opacity(beat ? 0.55 : 0.22))
           .scaleEffect(beat ? 1.08 : 0.92)
-          .blur(radius: 18)
+          .blur(radius: tokens.blur)
         VStack(spacing: 2) {
           Text(live.routeShortName)
             .font(.system(size: 22, weight: .bold, design: .rounded))
+            .foregroundStyle(tokens.ink)
           Text(remain == 0 ? "now" : "\(remain)")
             .font(.system(size: remain > 99 ? 36 : 52, weight: .semibold, design: .rounded))
             .monospacedDigit()
             .minimumScaleFactor(0.5)
+            .foregroundStyle(tokens.gold)
           Text(live.stopName)
-            .font(.system(size: 11, weight: .medium))
+            .font(.system(size: 11, weight: .medium, design: .rounded))
             .lineLimit(2)
             .multilineTextAlignment(.center)
-            .foregroundStyle(.white.opacity(0.72))
+            .foregroundStyle(tokens.muted)
           Text(live.clocks.prefix(3).joined(separator: "  "))
             .font(.system(size: 10, design: .monospaced))
-            .foregroundStyle(.white.opacity(0.5))
+            .monospacedDigit()
+            .foregroundStyle(tokens.sodium)
         }
         .padding(8)
       }
@@ -42,19 +45,5 @@ public struct WatchPulseView: View {
         withAnimation(.easeInOut(duration: 0.8)) { beat.toggle() }
       }
     }
-  }
-}
-
-private extension Color {
-  init(hex: String) {
-    var raw = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-    if raw.count == 3 { raw = raw.map { "\($0)\($0)" }.joined() }
-    var value: UInt64 = 0
-    Scanner(string: raw).scanHexInt64(&value)
-    self.init(
-      red: Double((value >> 16) & 0xFF) / 255,
-      green: Double((value >> 8) & 0xFF) / 255,
-      blue: Double(value & 0xFF) / 255
-    )
   }
 }

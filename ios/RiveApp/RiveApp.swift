@@ -11,6 +11,7 @@ struct RiveApp: App {
     WindowGroup {
       AtlasWebView(url: URL(string: "https://thebonhomme.com/transit/")!)
         .ignoresSafeArea()
+        .background(RiveTokens.paper)
     }
   }
 }
@@ -113,7 +114,9 @@ struct AtlasWebView: UIViewRepresentable {
 struct AtlasWebView: View {
   let url: URL
   var body: some View {
-    Text(url.absoluteString)
+    let _ = url
+    RiveNativeBoard()
+      .background(RiveTokens.paper)
   }
 }
 #endif
