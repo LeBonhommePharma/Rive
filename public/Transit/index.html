@@ -953,9 +953,9 @@
   <body>
     <canvas id="stage" aria-hidden="true"></canvas>
     <div id="ui">
-      <a class="atlas-brand" href="#dest" aria-label="Rive, rechercher une destination"><span aria-hidden="true">r</span>rive.</a>
-      <a class="skip" href="#dest">Aller à la destination</a>
-      <div class="cities panel" role="group" aria-label="Ville">
+      <a class="atlas-brand" href="#dest" data-i18n-aria="searchDestinationLabel" aria-label="Rive, rechercher une destination"><span aria-hidden="true">r</span>rive.</a>
+      <a class="skip" href="#dest" data-i18n="skipDestination">Aller à la destination</a>
+      <div class="cities panel" role="group" data-i18n-aria="cityLabel" aria-label="Ville">
         <button type="button" id="btn-quebec" data-city="quebec" class="on">Québec</button>
         <button type="button" id="btn-levis" data-city="quebec" data-visit="levis">Lévis</button>
         <button type="button" id="btn-montreal" data-city="montreal">Montréal</button>
@@ -965,14 +965,14 @@
         <button type="button" id="btn-trois-rivieres" data-city="trois-rivieres">Trois-Rivières</button>
       </div>
       <section class="sheet panel" id="sheet">
-        <div class="toolbar" role="toolbar" aria-label="Outils">
+        <div class="toolbar" role="toolbar" data-i18n-aria="toolsLabel" aria-label="Outils">
           <div class="tools">
             <button type="button" id="here" class="icon" aria-label="Me localiser" title="Me localiser">
               <svg viewBox="0 0 16 16" aria-hidden="true">
                 <circle cx="8" cy="8" r="3.1" fill="none" stroke="currentColor" stroke-width="1.4" />
                 <path d="M8 1.4v2.3M8 12.3v2.3M1.4 8h2.3M12.3 8h2.3" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
               </svg>
-              <span class="tl" aria-hidden="true">Ici</span>
+              <span class="tl" aria-hidden="true" data-i18n="hereShort">Ici</span>
             </button>
             <button type="button" id="fold" class="icon" aria-expanded="true" aria-controls="sheet-body" aria-label="Replier la fiche pour voir la carte" title="Replier la fiche pour voir la carte">
               <svg class="i-map" viewBox="0 0 16 16" aria-hidden="true">
@@ -985,20 +985,20 @@
               </svg>
               <span class="tl" aria-hidden="true">Carte</span>
             </button>
-            <button type="button" id="refresh" class="icon" aria-label="Actualiser les horaires" title="Actualiser les horaires">
+            <button type="button" id="refresh" class="icon" data-i18n-aria="refreshLabel" data-i18n-title="refreshLabel" aria-label="Actualiser les horaires" title="Actualiser les horaires">
               <svg viewBox="0 0 16 16" aria-hidden="true">
                 <path d="M13.1 8A5.1 5.1 0 1 1 11 3.7" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
                 <path d="M10.8 1.5v2.7h2.7" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" />
               </svg>
-              <span class="tl" aria-hidden="true">Maj</span>
+              <span class="tl" aria-hidden="true" data-i18n="refreshShort">Maj</span>
             </button>
-            <button type="button" id="pitch" class="word" aria-pressed="false" aria-label="Vue 3D: hauteurs et souterrain" title="Vue 3D: hauteurs et souterrain">3D</button>
+            <button type="button" id="pitch" class="word" data-i18n-aria="pitchLabel" data-i18n-title="pitchLabel" aria-pressed="false" aria-label="Vue 3D: hauteurs et souterrain" title="Vue 3D: hauteurs et souterrain">3D</button>
             <button type="button" id="perms" class="icon" aria-label="Aide pour autoriser la localisation" title="Aide pour autoriser la localisation">
               <svg viewBox="0 0 16 16" aria-hidden="true">
                 <circle cx="8" cy="8" r="5.6" fill="none" stroke="currentColor" stroke-width="1.4" />
                 <path d="M10.2 5.8 6.9 7.1 5.8 10.2 9.1 8.9z" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round" />
               </svg>
-              <span class="tl" aria-hidden="true">Aide</span>
+              <span class="tl" aria-hidden="true" data-i18n="helpShort">Aide</span>
             </button>
             <button type="button" id="theme" class="icon" aria-label="Nuit" title="Nuit">
               <svg class="i-moon" viewBox="0 0 16 16" aria-hidden="true">
@@ -1008,13 +1008,13 @@
                 <circle cx="8" cy="8" r="2.3" fill="none" stroke="currentColor" stroke-width="1.4" />
                 <path d="M8 1.5v1.5M8 13v1.5M1.5 8h1.5M13 8h1.5M3.3 3.3l1.1 1.1M11.6 11.6l1.1 1.1M3.3 12.7l1.1-1.1M11.6 4.4l1.1-1.1" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" />
               </svg>
-              <span class="tl l-night" aria-hidden="true">Nuit</span>
-              <span class="tl l-day" aria-hidden="true">Jour</span>
+              <span class="tl l-night" aria-hidden="true" data-i18n="nightShort">Nuit</span>
+              <span class="tl l-day" aria-hidden="true" data-i18n="dayShort">Jour</span>
             </button>
           </div>
           <label class="at">
-            <span class="sr-only">Heure</span>
-            <input id="at" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" maxlength="8" placeholder="16:00" aria-label="Heure" />
+            <span class="sr-only" data-i18n="timeLabel">Heure</span>
+            <input id="at" type="text" inputmode="numeric" autocomplete="off" spellcheck="false" maxlength="8" placeholder="16:00" aria-label="Heure" data-i18n-aria="timeLabel" />
           </label>
         </div>
         <div class="toolrow" id="toolrow">
@@ -1033,44 +1033,46 @@
             <button type="button" id="geo-cancel" hidden>Annuler la recherche</button>
           </div>
           <details id="geo-help" hidden>
-            <summary>J’ai déjà autorisé, mais ça ne marche pas</summary>
+            <summary id="geo-help-summary">J’ai déjà autorisé, mais ça ne marche pas</summary>
+            <div id="geo-help-content">
             <ol>
               <li>Dans les réglages de ce site, vérifie que la <strong>localisation est autorisée</strong>.</li>
               <li>Sur Mac : <strong>Réglages Système → Confidentialité et sécurité → Service de localisation</strong>. Autorise aussi l’application qui ouvre cette page : ton navigateur, ChatGPT ou Codex, selon celle que tu utilises.</li>
               <li>Active le Wi-Fi : un ordinateur peut s’en servir pour déterminer sa position. Reviens ici et touche <strong>Réessayer</strong>.</li>
             </ol>
             <p>Si le navigateur intégré ne transmet toujours aucune position, ouvre la même adresse dans Safari ou Chrome. Tu peux aussi choisir ton départ sur la carte sans autoriser la localisation.</p>
+            </div>
           </details>
         </section>
         <h1 id="dest-title">Où vas-tu ?</h1>
         <p class="lead" id="dest-lead">Ta destination, les trajets possibles, et les prochains départs.</p>
         <label>
-          <span class="sr-only">Destination</span>
-          <input id="dest" type="search" autocomplete="off" placeholder="Université Laval, McGill…" />
+          <span class="sr-only" data-i18n="destinationLabel">Destination</span>
+          <input id="dest" type="search" autocomplete="off" maxlength="512" aria-controls="dest-hits" placeholder="Université Laval, McGill…" />
         </label>
         <ul class="hits" id="dest-hits"></ul>
         <div id="trips" hidden></div>
-        <h2 id="line-title">Choisir une ligne</h2>
-        <p class="lead" id="line-lead">Après la destination, choisis le numéro ou la couleur près d'ici.</p>
-        <div id="lines" class="lines" role="listbox" aria-label="Ligne"></div>
+        <h2 id="line-title" data-i18n="chooseLine">Choisir une ligne</h2>
+        <p class="lead" id="line-lead" data-i18n="lineLead">Après la destination, choisis le numéro ou la couleur près d'ici.</p>
+        <div id="lines" class="lines" role="listbox" data-i18n-aria="lineLabel" aria-label="Ligne"></div>
         <div class="board due" id="due" hidden></div>
         <h2 id="else-title">Horaire ailleurs</h2>
         <p class="lead" id="else-lead">
           Un arrêt où tu n'es pas. Les passages viennent du GTFS officiel.
         </p>
         <label>
-          <span class="sr-only">Arrêt</span>
-          <input id="q" type="search" autocomplete="off" placeholder="Youville, 801, Berri, McGill…" />
+          <span class="sr-only" data-i18n="stopLabel">Arrêt</span>
+          <input id="q" type="search" autocomplete="off" maxlength="512" aria-controls="hits" placeholder="Youville, 801, Berri, McGill…" />
         </label>
         <ul class="hits" id="hits"></ul>
         <h2 id="nearby-title">Les arrêts autour de toi</h2>
         <ul class="hits" id="nearby"></ul>
-        <h2 id="bikes-title">Un vélo à proximité</h2>
+        <h2 id="bikes-title" data-i18n="bikeNearby">Un vélo à proximité</h2>
         <ul class="hits" id="bikes"></ul>
         <div class="board" id="board" hidden></div>
         </div>
       </section>
-      <button type="button" id="geo-ask">Me localiser</button>
+      <button type="button" id="geo-ask" hidden>Me localiser</button>
       <button type="button" id="geo-map-cancel" hidden>Annuler le choix</button>
       <div id="status-rail" aria-live="polite">
         <div id="heading" hidden></div>

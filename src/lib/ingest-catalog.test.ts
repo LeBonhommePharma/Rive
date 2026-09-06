@@ -85,11 +85,11 @@ describe("ingest catalog", () => {
   });
 
   it("parses --city trois-rivieres from argv", () => {
-    const parsed = parseIngestArgs(["node", "ingest-gtfs.mjs", "--city", "trois-rivieres"], {});
+    const parsed = parseIngestArgs(["node", "ingest-gtfs.mjs", "--city", "trois-rivieres"], { NODE_ENV: "test" });
     assert.equal(parsed.city, "trois-rivieres");
-    const equals = parseIngestArgs(["node", "ingest-gtfs.mjs", "--city=quebec"], {});
+    const equals = parseIngestArgs(["node", "ingest-gtfs.mjs", "--city=quebec"], { NODE_ENV: "test" });
     assert.equal(equals.city, "quebec");
-    const fromEnv = parseIngestArgs(["node", "ingest-gtfs.mjs"], { RIVE_INGEST_CITY: "sherbrooke" });
+    const fromEnv = parseIngestArgs(["node", "ingest-gtfs.mjs"], { NODE_ENV: "test", RIVE_INGEST_CITY: "sherbrooke" });
     assert.equal(fromEnv.city, "sherbrooke");
   });
 

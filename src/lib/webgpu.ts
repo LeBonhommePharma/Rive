@@ -151,10 +151,10 @@ async function shadeWallsOnDevice(
   paramF[3] = SHADE_AMBIENT;
   paramU[0] = count;
   try {
-    const module = device.createShaderModule({ code: SHADE_WGSL });
+    const shaderModule = device.createShaderModule({ code: SHADE_WGSL });
     const pipeline = device.createComputePipeline({
       layout: "auto",
-      compute: { module, entryPoint: "main" },
+      compute: { module: shaderModule, entryPoint: "main" },
     });
     const normalBuffer = device.createBuffer({ size: normalBytes, usage: STORAGE | COPY_DST });
     const paramBuffer = device.createBuffer({ size: 32, usage: UNIFORM | COPY_DST });
@@ -276,6 +276,7 @@ export async function shadeWallsMetal(
   const host = hostOf(bridge);
   const handler = host?.webkit?.messageHandlers?.riveShade;
   if (!handler || typeof handler.postMessage !== "function") return null;
+  const postMessage = handler.postMessage;
   installMetalResolve();
   const id = nextMetalId();
   const normals: number[] = [];
@@ -302,7 +303,7 @@ export async function shadeWallsMetal(
       resolve(shades);
     });
     try {
-      handler.postMessage({ id, normals, light: [light.x, light.y, light.z] });
+      postMessage.call(handler, { id, normals, light: [light.x, light.y, light.z] });
     } catch {
       clearTimeout(timer);
       pending.delete(id);

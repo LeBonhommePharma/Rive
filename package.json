@@ -12,7 +12,9 @@
     "tui": "node --experimental-strip-types --import ./scripts/node-ts-hooks.mjs src/lib/tui.ts",
     "ingest": "node --max-old-space-size=8192 scripts/ingest-gtfs.mjs",
     "ingest:force": "node --max-old-space-size=8192 scripts/ingest-gtfs.mjs --force",
-    "install-me": "bash scripts/install-me"
+    "install-me": "bash scripts/install-me",
+    "predev": "node scripts/copy-maplibre-worker.mjs",
+    "prebuild": "node scripts/copy-maplibre-worker.mjs"
   },
   "dependencies": {
     "@phosphor-icons/react": "^2.1.10",

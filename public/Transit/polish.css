@@ -1,10 +1,12 @@
 /* Shared Rive character, with the atlas' day/night and map controls intact. */
 :root, html.day, html.night { --r-lg: 22px; --r-md: 12px; }
-.atlas-brand { position: absolute; top: var(--safe-top); left: var(--safe-left); height: 52px; display: flex; align-items: center; gap: 10px; color: var(--ink); text-decoration: none; font-size: 30px; font-weight: 700; letter-spacing: -1.3px; }
+.atlas-brand { position: absolute; top: var(--safe-top); left: var(--safe-left); height: 52px; display: flex; align-items: center; gap: 6px; padding: 0 8px 0 6px; border: 1px solid var(--hair); border-radius: 17px; background: var(--glass); color: var(--ink); text-decoration: none; font-size: 30px; font-weight: 700; letter-spacing: -1.3px; }
 .atlas-brand span { background: var(--brand-ink); color: var(--brand-mint); width: 38px; height: 38px; border-radius: 13px; display: grid; place-items: center; font-size: 24px; }
 .cities { left: calc(var(--safe-left) + 128px); border-radius: 16px; }
 .cities button { font-family: var(--font-ui); font-size: 14px; letter-spacing: 0; }
 .sheet { padding-inline: 20px; }
+/* Keep focus scrolling inside the body so it cannot push the toolbar out of view. */
+#sheet { overflow: clip; }
 .sheet h1 { font-family: var(--font-ui); font-size: 34px; letter-spacing: -1px; margin-top: 12px; line-height: 1.15; }
 .sheet p.lead { font-size: 14px; line-height: 1.5; margin: 8px 0 16px; }
 #sheet-body > h2 { font-family: var(--font-ui); font-size: 18px; font-weight: 700; letter-spacing: -.3px; color: var(--ink); margin-top: 24px; padding-top: 20px; }
@@ -14,6 +16,7 @@
 .sheet input:focus { box-shadow: 0 0 0 3px color-mix(in srgb, var(--sodium) 15%, transparent); }
 .hits button { min-height: 54px; border-radius: 12px; }
 .hits button:hover { background: var(--well-hi); }
+.hits .search-empty { padding: 12px 4px; color: var(--ink-soft); font-size: 13px; line-height: 1.5; }
 .toolbar { padding-block: 10px; }
 .toolbar button { border-radius: 10px; }
 .at input { min-height: 44px; }

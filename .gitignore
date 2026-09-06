@@ -50,3 +50,6 @@ next-env.d.ts
 
 # generated personal wrapper
 /dist/
+
+# Generated from the installed MapLibre version before dev/build.
+/public/maplibre/

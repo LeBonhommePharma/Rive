@@ -1,4 +1,4 @@
-import { stationsFor } from "@/app/api/bikes/route";
+import { stationsFor } from "@/lib/bike-service";
 import { isCityId, loadAtlas, loadTimetable } from "@/lib/atlas/store";
 import { allowRateLimit, isPlace, parseClock, readJsonBody, requestRateLimitKey } from "@/lib/http";
 import { planTrip } from "@/lib/planner";
