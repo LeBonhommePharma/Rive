@@ -85,6 +85,9 @@ const state = {
   rider: emptyRiderStore(),
   probes: emptyProbeStore(),
   watchId: null,
+  geoStatus: "idle",
+  geoError: null,
+  selectingOrigin: false,
   pois: [],
   searchPois: [],
   buildings: [],
@@ -306,10 +309,10 @@ function haversineMeters(a, b) {
 }
 
 function pinHereForCity(here, center, maxMeters = 40000) {
-  if (here && here.source === "gps" && Number.isFinite(here.lon) && Number.isFinite(here.lat)) {
+  if (here && (here.source === "gps" || here.source === "manual") && Number.isFinite(here.lon) && Number.isFinite(here.lat)) {
     const meters = haversineMeters(here, center);
     if (Number.isFinite(meters) && meters <= maxMeters) {
-      return { lon: here.lon, lat: here.lat, source: "gps" };
+      return { ...here };
     }
   }
   return { lon: center.lon, lat: center.lat, source: "map" };
@@ -785,6 +788,12 @@ function riderPoint() {
   }
   if (state.stop) return { lon: state.stop.lon, lat: state.stop.lat, stopId: state.stop.id };
   return { lon: state.camera.lon, lat: state.camera.lat };
+}
+
+function originDescription() {
+  if (state.here?.source === "gps") return "ta dernière position reçue";
+  if (state.here?.source === "manual") return "ton départ choisi";
+  return "le centre de la carte par défaut";
 }
 
 function pickPois(candidates, budget) {
@@ -1574,12 +1583,15 @@ function setPitch(value) {
   syncPitchButton();
 }
 
+let cityLoadRequest = 0;
 async function loadCity(city) {
+  const request = ++cityLoadRequest;
   const base = new URL("./data/" + city + "/", import.meta.url);
   const [atlas, timetable] = await Promise.all([
     fetchJsonLimited(new URL("atlas.json", base), {}, 32 * 1024 * 1024),
     fetchJsonLimited(new URL("timetable.json", base), {}, 32 * 1024 * 1024),
   ]);
+  if (request !== cityLoadRequest) return false;
   prepareAtlas(atlas);
   state.city = city;
   state.atlas = atlas;
@@ -1600,6 +1612,8 @@ async function loadCity(city) {
     lon: atlas.meta.center[0],
     lat: atlas.meta.center[1],
   });
+  paintHereButton();
+  paintGeoAsk();
   document.getElementById("attr").textContent = atlas.meta.attribution;
   hideLoadError();
   renderNearby();
@@ -1613,6 +1627,7 @@ async function loadCity(city) {
   renderBikes();
   if (state.routeId) renderDue();
   requestDraw();
+  return true;
 }
 
 function showLoadError(err) {
@@ -1697,7 +1712,7 @@ function selectSearchHit(hit, destination) {
   }
   const nearest = nearbyStops(liveStops(), point, 900, 1)[0];
   if (nearest) openStop(nearest);
-  else applyHere(point.lon, point.lat, "map", Date.now(), true);
+  else applyHere(point.lon, point.lat, "manual", Date.now(), true);
 }
 
 function renderLines() {
@@ -1744,7 +1759,7 @@ function renderDue() {
     return;
   }
   box.innerHTML =
-    notice + `<h2>Prochains</h2><p class="lead">À ${formatClock(now)}, près de toi. Horaires officiels.</p>` +
+    notice + `<h2>Prochains</h2><p class="lead">À ${formatClock(now)}, près de ${originDescription()}. Horaires officiels.</p>` +
     due
       .map(
         (row) => `<div class="row">
@@ -1775,6 +1790,8 @@ function renderNearby() {
   const box = document.getElementById("nearby");
   if (!box || !state.atlas) return;
   const origin = riderPoint();
+  const title = document.getElementById("nearby-title");
+  if (title) title.textContent = state.here?.source === "gps" ? "Les arrêts autour de toi" : "Les arrêts autour du départ";
   const stops = nearbyStops(liveStops(), origin, 700, 8);
   box.innerHTML = stops
     .map(
@@ -1858,11 +1875,13 @@ function paintHereButton() {
   btn.classList.toggle("on", following);
   btn.classList.toggle("dim", !fixed);
   btn.setAttribute("aria-pressed", following ? "true" : "false");
+  btn.setAttribute("aria-busy", state.geoStatus === "locating" ? "true" : "false");
   btn.title = !fixed
-    ? "Position inconnue — touche pour autoriser"
+    ? "Me localiser"
     : following
       ? "La carte suit ta position"
       : "Recentrer sur ta position";
+  btn.setAttribute("aria-label", btn.title);
 }
 
 function paintHeading() {
@@ -1904,23 +1923,16 @@ function listenHeading() {
 }
 
 function resetPermissions() {
-  if (state.watchId != null && navigator.geolocation && typeof navigator.geolocation.clearWatch === "function") {
-    navigator.geolocation.clearWatch(state.watchId);
+  // A page cannot reset browser or system permissions. Keep the last fix and
+  // explain where the rider can change those permissions instead.
+  const help = document.getElementById("geo-help");
+  locationHelpWasShown = true;
+  if (help) {
+    help.hidden = false;
+    help.open = true;
   }
-  state.watchId = null;
-  headingListen = false;
-  state.heading = null;
-  state.rider = forgetInAppLocationGrant(state.rider);
-  if (state.rider.here) {
-    state.here = { lon: state.rider.here.lon, lat: state.rider.here.lat, source: state.rider.here.source, at: state.rider.here.at };
-  } else {
-    state.here = null;
-  }
-  state.userMoved = false;
-  paintHeading();
-  paintHereButton();
-  paintGeoAsk(true);
-  locate();
+  bumpSheet();
+  document.getElementById("geo-panel")?.scrollIntoView({ block: "nearest" });
 }
 
 function askHeadingPermission() {
@@ -1936,13 +1948,13 @@ function askHeadingPermission() {
   listenHeading();
 }
 
-function applyHere(lon, lat, source, at, follow) {
-  const stamp = source === "gps" ? Date.now() : at ?? Date.now();
+function applyHere(lon, lat, source, at, follow, accuracy) {
+  const stamp = at ?? Date.now();
   const prev = state.here;
-  const next = acceptRiderFix(state.rider, { lon, lat, at: stamp, source: source || "gps" }, Date.now());
+  const next = acceptRiderFix(state.rider, { lon, lat, at: stamp, source: source || "gps", accuracy }, Date.now());
   if (!next.here) return;
   state.rider = next;
-  state.here = { lon: next.here.lon, lat: next.here.lat, source: next.here.source, at: next.here.at };
+  state.here = { ...next.here };
   const moved = !prev || haversineMeters(prev, next.here) > 15;
   const wantSnap = follow || !prev || moved || state.navigating;
   if (state.routeId && isCrowdProbeSource(next.here.source)) {
@@ -1966,6 +1978,7 @@ function applyHere(lon, lat, source, at, follow) {
     wantSnap,
   });
   const go = () => {
+    if (state.rider.here !== next.here || state.selectingOrigin) return;
     // follow === true means the rider asked (boot fix, Ici, GPS). A passive
     // watchPosition sample must never move a map the rider has panned or zoomed.
     const asked = follow === true;
@@ -1978,6 +1991,7 @@ function applyHere(lon, lat, source, at, follow) {
       });
     }
     paintHereButton();
+    paintGeoAsk();
     renderNearby();
     renderLines();
     renderBikes();
@@ -1999,7 +2013,7 @@ function applyHere(lon, lat, source, at, follow) {
   if (city && city !== state.city) {
     state.visitId = "";
     paintCityButtons();
-    loadCity(city).then(go).catch(showLoadError);
+    loadCity(city).then((loaded) => { if (loaded !== false) go(); }).catch(showLoadError);
     return;
   }
   go();
@@ -2007,6 +2021,9 @@ function applyHere(lon, lat, source, at, follow) {
 
 let toolStatusTimer = 0;
 let userAskedLocation = false;
+let locationRequest = 0;
+let locationDeadline = 0;
+let locationHelpWasShown = false;
 
 function toolStatus(message, kind) {
   const el = document.getElementById("tool-status");
@@ -2024,62 +2041,205 @@ function toolStatus(message, kind) {
   }, 3600);
 }
 
-function paintGeoAsk(needed) {
+function locationFailure(error) {
+  if (window.isSecureContext === false) return {
+    title: "La connexion doit être sécurisée",
+    message: "Ouvre Rive en HTTPS pour partager ta position. Tu peux aussi choisir ton départ sur la carte.",
+  };
+  if (!navigator.geolocation) return {
+    title: "Ce navigateur ne fournit pas de position",
+    message: "Ouvre Rive dans Safari ou Chrome, ou choisis ton départ sur la carte.",
+  };
+  if (Number(error?.code) === 1) return {
+    title: "La localisation est bloquée",
+    message: "Autorise la position pour ce site, puis vérifie le service de localisation de ton appareil pour l’application qui ouvre cette page.",
+  };
+  if (Number(error?.code) === 3) return {
+    title: "La position prend trop de temps",
+    message: "Aucune position reçue à temps. Active le Wi-Fi et le service de localisation, puis réessaie ou choisis ton départ.",
+  };
+  return {
+    title: "Ton appareil ne transmet pas de position",
+    message: "Même après avoir autorisé le site, le navigateur peut ne recevoir aucune position. Vérifie le Wi-Fi et le service de localisation, ou choisis ton départ.",
+  };
+}
+
+function paintGeoAsk() {
   const el = document.getElementById("geo-ask");
-  if (!el) return;
-  const gps = state.here && state.here.source === "gps";
-  el.hidden = Boolean(gps) && needed !== true;
-  if (!el.hidden) {
-    el.textContent = navigator.geolocation ? "Autoriser la position" : "Pas de géolocalisation ici";
-    el.title = navigator.geolocation
-      ? "Sinon le centre-ville sert de fausse origine."
-      : "Cet appareil ne fournit pas de position.";
+  const gps = state.here?.source === "gps";
+  const manual = state.here?.source === "manual";
+  const searching = state.geoStatus === "locating";
+  const failure = state.geoError ? locationFailure(state.geoError) : null;
+  const title = document.getElementById("geo-title");
+  const message = document.getElementById("geo-message");
+  const locateButton = document.getElementById("geo-locate");
+  const cancelButton = document.getElementById("geo-cancel");
+  const mapCancel = document.getElementById("geo-map-cancel");
+  const help = document.getElementById("geo-help");
+  const accuracy = Number.isFinite(state.here?.accuracy) ? ` Précision annoncée : environ ${formatMeters(state.here.accuracy)}.` : "";
+  if (title) title.textContent = state.selectingOrigin ? "Choisis ton point de départ"
+    : searching ? "Recherche de ta position…"
+      : failure ? failure.title : gps ? "Position reçue" : manual ? "Départ choisi sur la carte" : "D’où pars-tu ?";
+  if (message) message.textContent = state.selectingOrigin
+    ? "Déplace la carte sous le repère, puis confirme ce point de départ."
+    : searching ? "Autorise la position si ton navigateur te le demande. Tu peux annuler à tout moment."
+      : failure ? `${failure.message}${gps ? " Ta dernière position reçue reste affichée." : manual ? " Ton départ choisi est conservé." : " Le centre par défaut n’est pas ta position."}`
+        : gps ? `Le point plein indique la position reçue de ton appareil.${accuracy}`
+          : manual ? "Le carré indique ton départ choisi. Tu peux calculer un trajet sans partager ta position."
+            : "Localise-toi en un geste, ou choisis un départ. Pour l’instant, les horaires partent du centre par défaut.";
+  if (locateButton) {
+    locateButton.textContent = searching ? "Recherche en cours…" : failure ? "Réessayer" : gps ? "Me recentrer" : "Me localiser";
+    locateButton.disabled = searching;
   }
+  if (cancelButton) cancelButton.hidden = !searching;
+  if (mapCancel) mapCancel.hidden = !state.selectingOrigin;
+  const manualButton = document.getElementById("geo-manual");
+  if (manualButton) manualButton.textContent = manual ? "Changer le départ" : "Choisir sur la carte";
+  if (help) {
+    help.hidden = !failure && !locationHelpWasShown;
+    if (failure) locationHelpWasShown = true;
+  }
+  if (el) {
+    el.hidden = Boolean(gps) && !failure && !searching && !state.selectingOrigin;
+    el.disabled = searching;
+    el.textContent = state.selectingOrigin ? "Confirmer ce point de départ" : searching ? "Recherche de ta position…" : failure ? "Réessayer la localisation" : "Me localiser";
+    el.title = state.selectingOrigin ? "Utiliser le point sous le repère comme départ" : "Recevoir la position de ton appareil";
+  }
+  paintHereButton();
+  requestDraw();
+}
+
+function cancelLocation() {
+  locationRequest += 1;
+  clearTimeout(locationDeadline);
+  locationDeadline = 0;
+  if (state.watchId != null && navigator.geolocation?.clearWatch) navigator.geolocation.clearWatch(state.watchId);
+  state.watchId = null;
+  userAskedLocation = false;
+  if (state.geoStatus === "locating") state.geoStatus = state.here?.source === "gps" ? "ready" : "idle";
+}
+
+function chooseMapOrigin() {
+  cancelLocation();
+  state.selectingOrigin = true;
+  state.geoError = null;
+  cancelFlight();
+  minimizeSheet();
+  paintGeoAsk();
+  document.getElementById("geo-ask")?.focus();
+}
+
+function confirmMapOrigin() {
+  const { lon, lat } = state.camera;
+  state.selectingOrigin = false;
+  state.rider = forgetInAppLocationGrant(state.rider);
+  state.geoStatus = "manual";
+  state.geoError = null;
+  state.cityLocked = false;
+  state.visitId = "";
+  applyHere(lon, lat, "manual", Date.now(), false);
+  paintGeoAsk();
+  bumpSheet();
+  document.getElementById("dest")?.focus();
 }
 
 function locate() {
-  const fallback = () => {
-    paintGeoAsk(true);
-    if (userAskedLocation) {
-      userAskedLocation = false;
-      toolStatus(
-        navigator.geolocation ? "Position refusée. Origine: centre-ville." : "Pas de position sur cet appareil.",
-        "err",
-      );
-    }
-    if (state.here && state.here.source === "gps") return;
-    const center = state.atlas
-      ? { lon: state.atlas.meta.center[0], lat: state.atlas.meta.center[1] }
-      : state.camera;
-    applyHere(center.lon, center.lat, "map");
+  if (state.geoStatus === "locating") return;
+  cancelLocation();
+  const request = locationRequest;
+  state.selectingOrigin = false;
+  state.geoStatus = "locating";
+  state.geoError = null;
+  userAskedLocation = true;
+  paintGeoAsk();
+  const current = () => request === locationRequest;
+  const fail = (error) => {
+    if (!current()) return;
+    clearTimeout(locationDeadline);
+    locationDeadline = 0;
+    state.geoStatus = "error";
+    state.geoError = error || { code: 2 };
+    userAskedLocation = false;
+    paintGeoAsk();
+    toolStatus(locationFailure(state.geoError).title, "err");
+    locationRequest += 1;
   };
-  if (!navigator.geolocation) {
-    fallback();
+  if (window.isSecureContext === false || !navigator.geolocation) {
+    fail({ code: 2 });
     return;
   }
-  askHeadingPermission();
-  const onFix = (pos, follow) => {
-    paintGeoAsk(false);
-    if (userAskedLocation) {
-      userAskedLocation = false;
-      toolStatus("Position trouvée.", "ok");
+  const acceptFix = (pos, follow) => {
+    if (!current()) return false;
+    const coords = pos?.coords;
+    if (!coords || !Number.isFinite(coords.longitude) || Math.abs(coords.longitude) > 180 ||
+        !Number.isFinite(coords.latitude) || Math.abs(coords.latitude) > 90) return false;
+    const at = Number.isFinite(pos.timestamp) ? pos.timestamp : Date.now();
+    if (Date.now() - at > 120000 || at > Date.now() + 60000 ||
+        (state.here?.source === "gps" && at < state.here.at)) return false;
+    clearTimeout(locationDeadline);
+    locationDeadline = 0;
+    state.geoStatus = "ready";
+    state.geoError = null;
+    if (follow) {
+      state.cityLocked = false;
+      state.visitId = "";
+      state.userMoved = false;
     }
-    applyHere(pos.coords.longitude, pos.coords.latitude, "gps", pos.timestamp || Date.now(), follow);
+    applyHere(coords.longitude, coords.latitude, "gps", at, follow, coords.accuracy);
     applyHeading(pos.coords);
+    paintGeoAsk();
+    if (userAskedLocation) toolStatus("Position reçue.", "ok");
+    userAskedLocation = false;
+    return true;
   };
-  navigator.geolocation.getCurrentPosition((pos) => onFix(pos, true), fallback, {
-    enableHighAccuracy: true,
-    maximumAge: 0,
-    timeout: 20000,
-  });
-  if (state.watchId == null && typeof navigator.geolocation.watchPosition === "function") {
-    state.watchId = navigator.geolocation.watchPosition((pos) => onFix(pos, false), () => paintGeoAsk(true), {
-      enableHighAccuracy: true,
-      maximumAge: 3000,
-      timeout: 20000,
-    });
-  }
+  const startWatch = () => {
+    if (!current() || state.watchId != null || typeof navigator.geolocation.watchPosition !== "function") return;
+    try {
+      const watchId = navigator.geolocation.watchPosition(
+        (pos) => { acceptFix(pos, false); },
+        (error) => {
+          if (!current()) return;
+          // Keep the last real fix visible and stop a failing watch. A retry is
+          // always deliberate; permission failures must not loop in a WebView.
+          if (state.watchId != null) navigator.geolocation.clearWatch(state.watchId);
+          state.watchId = null;
+          fail(error);
+        },
+        { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 },
+      );
+      if (current()) state.watchId = watchId;
+      else navigator.geolocation.clearWatch(watchId);
+    } catch (error) { fail(error); }
+  };
+  const attempt = (precise) => {
+    let settled = false;
+    const failedAttempt = (error) => {
+      if (settled || !current()) return;
+      settled = true;
+      clearTimeout(locationDeadline);
+      if (!precise && Number(error?.code) !== 1) attempt(true);
+      else fail(error);
+    };
+    // Native location may wait indefinitely for a host permission dialog. This
+    // deadline also bounds WebViews that ignore the API timeout option.
+    locationDeadline = setTimeout(() => failedAttempt({ code: 3 }), precise ? 16000 : 11000);
+    try {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          if (settled || !current()) return;
+          if (!acceptFix(pos, true)) { failedAttempt({ code: 2 }); return; }
+          settled = true;
+          startWatch();
+        },
+        failedAttempt,
+        { enableHighAccuracy: precise, maximumAge: precise ? 0 : 60000, timeout: precise ? 15000 : 10000 },
+      );
+    } catch (error) { failedAttempt(error); }
+  };
+  attempt(false);
 }
+
+window.addEventListener("pagehide", cancelLocation);
 
 function safeColor(value, fallback = "#0071e3") {
   const color = typeof value === "string" ? value : "";
@@ -2137,7 +2297,7 @@ function renderTrips() {
   box.hidden = false;
   const destName = state.dest?.name || "";
   box.innerHTML =
-    `<h2>Vers ${escapeHtml(destName)}</h2>` +
+    `<h2>Vers ${escapeHtml(destName)}</h2><p class="lead">Départ depuis ${originDescription()}.</p>` +
     state.trips
       .map((trip, i) => {
         const on = i === state.tripIndex ? " on" : "";
@@ -2236,7 +2396,10 @@ function startTrip(index) {
   const transit = (trip.legs || []).find((leg) => leg.kind === "transit" && leg.routeId);
   if (transit) state.routeId = transit.routeId;
   setSheetOpen(false);
-  locate();
+  if (state.here?.source === "gps") {
+    if (state.watchId == null) locate();
+    askHeadingPermission();
+  }
   paintNav();
   pulseFromTrip(trip);
   requestDraw();
@@ -2338,7 +2501,7 @@ function openPlan(destStop, quiet) {
     if (box) {
       box.hidden = false;
       box.innerHTML = `<h2>Vers ${escapeHtml(destStop.name)}</h2>
-        <p class="lead">Pas de trajet à ${formatClock(now)} depuis ici. Choisis une ligne ou un horaire ailleurs.</p>`;
+        <p class="lead">Pas de trajet à ${formatClock(now)} depuis ${originDescription()}. Choisis une ligne ou un horaire ailleurs.</p>`;
     }
   }
   if (!quiet) bumpSheet();
@@ -2902,12 +3065,21 @@ function draw() {
     }
   }
   ctx.globalAlpha = 1;
-  if (state.here) {
+  if (state.here && (state.here.source === "gps" || state.here.source === "manual")) {
     const [hx, hy] = worldToScreen(state.here.lon, state.here.lat, cam, w, h);
-    ctx.fillStyle = sodium;
-    ctx.beginPath();
-    ctx.arc(hx, hy, 5, 0, Math.PI * 2);
-    ctx.fill();
+    if (state.here.source === "gps") {
+      ctx.fillStyle = sodium;
+      ctx.beginPath();
+      ctx.arc(hx, hy, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = theme.dot;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    } else {
+      ctx.strokeStyle = sodium;
+      ctx.lineWidth = 3;
+      ctx.strokeRect(hx - 6, hy - 6, 12, 12);
+    }
     if (state.here.source === "gps" && state.heading && Number.isFinite(state.heading.degrees)) {
       const rad = ((state.heading.degrees - 90) * Math.PI) / 180;
       ctx.beginPath();
@@ -2917,6 +3089,15 @@ function draw() {
       ctx.closePath();
       ctx.fill();
     }
+  }
+  if (state.selectingOrigin) {
+    ctx.strokeStyle = sodium;
+    ctx.lineWidth = 3;
+    ctx.beginPath();
+    ctx.arc(w / 2, h / 2, 12, 0, Math.PI * 2);
+    ctx.moveTo(w / 2 - 20, h / 2); ctx.lineTo(w / 2 + 20, h / 2);
+    ctx.moveTo(w / 2, h / 2 - 20); ctx.lineTo(w / 2, h / 2 + 20);
+    ctx.stroke();
   }
   if (state.fusedVehicle && Number.isFinite(state.fusedVehicle.lon)) {
     const [fx, fy] = worldToScreen(state.fusedVehicle.lon, state.fusedVehicle.lat, cam, w, h);
@@ -3490,29 +3671,32 @@ fetchJsonLimited(new URL("l10n/rive.json", import.meta.url), {}, 512 * 1024)
   .catch(() => {});
 
 bindCityButtons();
-document.getElementById("here").onclick = () => {
-  userAskedLocation = true;
-  state.userMoved = false;
-  paintHereButton();
-  toolStatus(state.here && state.here.source === "gps" ? "Recentrage…" : "Recherche de ta position…");
-  if (state.here && state.here.source === "gps") {
+function locateFromButton() {
+  if (state.here?.source === "gps") {
+    state.userMoved = false;
     flyTo({ lon: state.here.lon, lat: state.here.lat, zoom: Math.max(state.camera.zoom, 14.2) });
   }
   locate();
-};
+}
+document.getElementById("here").onclick = locateFromButton;
+document.getElementById("geo-locate").onclick = locateFromButton;
 document.getElementById("geo-ask").onclick = () => {
-  userAskedLocation = true;
-  toolStatus("Recherche de ta position…");
-  locate();
+  if (state.selectingOrigin) confirmMapOrigin();
+  else locateFromButton();
+};
+document.getElementById("geo-manual").onclick = chooseMapOrigin;
+document.getElementById("geo-cancel").onclick = () => {
+  cancelLocation();
+  state.geoError = null;
+  paintGeoAsk();
+};
+document.getElementById("geo-map-cancel").onclick = () => {
+  state.selectingOrigin = false;
+  paintGeoAsk();
+  bumpSheet();
 };
 const perms = document.getElementById("perms");
-if (perms) {
-  perms.onclick = () => {
-    userAskedLocation = true;
-    toolStatus("Position et boussole redemandées…");
-    resetPermissions();
-  };
-}
+if (perms) perms.onclick = resetPermissions;
 document.getElementById("pitch").onclick = () => {
   const on = (state.camera.pitch || 0) > 0.2;
   setPitch(on ? 0 : 0.72);
@@ -3608,7 +3792,7 @@ function switchCity(city, visit) {
     applyVisit(visit);
     return;
   }
-  loadCity(city).then(() => applyVisit(visit)).catch(showLoadError);
+  loadCity(city).then((loaded) => { if (loaded !== false) applyVisit(visit); }).catch(showLoadError);
 }
 
 let resizeTick = 0;
@@ -3639,13 +3823,14 @@ paintHeading();
 paintHereButton();
 paintGeoAsk(true);
 loadCity(bootCity)
-  .then(() => {
+  .then((loaded) => {
+    if (loaded === false) return;
     if (bootVisit) applyVisit(bootVisit);
     if (bootStop && state.atlas) {
       const hit = state.atlas.stops.find((s) => s.id === bootStop);
       if (hit) openStop(hit);
     }
-    locate();
+    paintGeoAsk();
   })
   .catch(showLoadError);
 loadCityIndex();
