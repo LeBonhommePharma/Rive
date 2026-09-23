@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-09-22T16:57:11.638Z",
+  "builtAt": "2026-09-23T04:44:33.453Z",
   "cities": [
     {
       "city": "quebec",
@@ -10,7 +10,7 @@
       "timezone": "America/Montreal",
       "lang": "fr",
       "phone": "+1-418-627-2511",
-      "updated": "20260921",
+      "updated": "20260922",
       "start": "20260824",
       "end": "20261220",
       "version": "",
@@ -24,8 +24,8 @@
       "zoom": 12.4,
       "counts": {
         "routes": 263,
-        "stops": 5985,
-        "trips": 74683,
+        "stops": 5984,
+        "trips": 74736,
         "services": 33,
         "timetableStops": 5744
       },
