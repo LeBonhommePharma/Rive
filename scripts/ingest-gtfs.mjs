@@ -30,6 +30,17 @@ import {
   selectRegions,
 } from "./gtfs-catalog.mjs";
 import { assertCoverageIncludesToday } from "./gtfs-coverage.mjs";
+import {
+  EXIT_FAILED,
+  buildIndexPayload,
+  curlArgs,
+  describeRefreshFailure,
+  formatAge,
+  refreshFailureMessage,
+  runExitCode,
+  staleFeedRecord,
+  summaryMarkdown,
+} from "./gtfs-refresh.mjs";
 
 const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
 const CACHE = join(ROOT, ".cache", "gtfs");
@@ -192,45 +203,128 @@ function simplifyLine(coords, minMeters = 14) {
   return out;
 }
 
-function ensureZip(feed, force) {
-  mkdirSync(CACHE, { recursive: true });
-  const zipPath = join(CACHE, feed.zip);
-  const dir = join(CACHE, feed.slug);
-  if (force) {
-    console.log(`Refreshing ${feed.slug} from official zip…`);
-    rmSync(zipPath, { force: true });
-    rmSync(dir, { recursive: true, force: true });
+function feedUrl(feed) {
+  // Fault injection for drills and tests: GTFS_FEED_URL_OVERRIDES="stm=https://…"
+  // points a feed somewhere else without editing the registry. Logged loudly.
+  const raw = process.env.GTFS_FEED_URL_OVERRIDES || "";
+  for (const pair of raw.split(",")) {
+    const eq = pair.indexOf("=");
+    if (eq > 0 && pair.slice(0, eq).trim() === feed.slug) {
+      const url = pair.slice(eq + 1).trim();
+      console.log(`  !! ${feed.slug}: URL overridden by GTFS_FEED_URL_OVERRIDES -> ${url}`);
+      return url;
+    }
   }
-  if (!existsSync(zipPath)) {
-    console.log(`Downloading ${feed.slug}…`);
-    execFileSync(
-      "curl",
-      ["-L", "--fail", "--retry", "3", "--max-filesize", String(MAX_ZIP_BYTES), "--proto", "=https", "--proto-redir", "=https", "-o", zipPath, feed.url],
-      {
-      stdio: "inherit",
-      },
-    );
+  return feed.url;
+}
+
+function fetchedRecordPath(zipPath) {
+  return `${zipPath}.fetched.json`;
+}
+
+/** When the archive at zipPath was last fetched successfully. */
+function readFetchedAt(zipPath) {
+  try {
+    const record = JSON.parse(readFileSync(fetchedRecordPath(zipPath), "utf8"));
+    if (typeof record?.fetchedAt === "string" && Number.isFinite(Date.parse(record.fetchedAt))) {
+      return record.fetchedAt;
+    }
+  } catch {
+    // no record: an archive from before records existed
   }
+  // Conservative: an archive's mtime is never later than its fetch.
+  return statSync(zipPath).mtime.toISOString();
+}
+
+/** Validate an archive and extract it to dir, replacing dir only on success. */
+function extractArchive(zipPath, dir, slug) {
   if (statSync(zipPath).size > MAX_ZIP_BYTES) throw new Error(`GTFS archive too large: ${zipPath}`);
-  if (existsSync(join(dir, "routes.txt"))) {
-    assertSafeExtractedDir(dir);
-    return dir;
-  }
   validateZipArchive(zipPath);
-  const tempDir = join(CACHE, `${feed.slug}.tmp-${process.pid}-${Date.now()}`);
+  const tempDir = join(CACHE, `${slug}.tmp-${process.pid}-${Date.now()}`);
   rmSync(tempDir, { recursive: true, force: true });
   mkdirSync(tempDir, { recursive: true });
   try {
     execFileSync("unzip", ["-q", zipPath, "-d", tempDir], { stdio: "inherit" });
     assertSafeExtractedDir(tempDir);
-    if (!existsSync(join(tempDir, "routes.txt"))) throw new Error(`GTFS archive missing routes.txt: ${feed.slug}`);
+    if (!existsSync(join(tempDir, "routes.txt"))) throw new Error(`GTFS archive missing routes.txt: ${slug}`);
     rmSync(dir, { recursive: true, force: true });
     renameSync(tempDir, dir);
   } catch (error) {
     rmSync(tempDir, { recursive: true, force: true });
     throw error;
   }
-  return dir;
+}
+
+/**
+ * Download to a side file and promote it over the last good archive only after
+ * it has been validated and extracted. A failed or corrupt download therefore
+ * never destroys the archive the fallback depends on.
+ */
+function fetchFresh(feed, zipPath, dir) {
+  const part = `${zipPath}.part`;
+  rmSync(part, { force: true });
+  try {
+    console.log(`Downloading ${feed.slug}…`);
+    execFileSync("curl", curlArgs(feedUrl(feed), part, MAX_ZIP_BYTES), { stdio: "inherit" });
+    try {
+      extractArchive(part, dir, feed.slug);
+    } catch (error) {
+      throw new Error(`downloaded archive rejected: ${refreshFailureMessage(error, ROOT)}`);
+    }
+    renameSync(part, zipPath);
+  } finally {
+    rmSync(part, { force: true });
+  }
+  const fetchedAt = new Date().toISOString();
+  writeFileSync(fetchedRecordPath(zipPath), `${JSON.stringify({ url: feed.url, fetchedAt })}\n`);
+  return fetchedAt;
+}
+
+/**
+ * Get usable data for one feed. Never throws: the outcome says what happened.
+ * Returns { dir, status, fetchedAt, message } — see scripts/gtfs-refresh.mjs.
+ */
+function acquireFeed(feed, force) {
+  mkdirSync(CACHE, { recursive: true });
+  const zipPath = join(CACHE, feed.zip);
+  const dir = join(CACHE, feed.slug);
+
+  if (!force && existsSync(zipPath)) {
+    try {
+      if (existsSync(join(dir, "routes.txt"))) assertSafeExtractedDir(dir);
+      else extractArchive(zipPath, dir, feed.slug);
+      return { dir, status: "cached", fetchedAt: readFetchedAt(zipPath) };
+    } catch (error) {
+      return { dir, status: "failed", message: refreshFailureMessage(error, ROOT) };
+    }
+  }
+
+  if (force) console.log(`Refreshing ${feed.slug} from official zip…`);
+  let fetchError;
+  try {
+    return { dir, status: "fresh", fetchedAt: fetchFresh(feed, zipPath, dir) };
+  } catch (error) {
+    fetchError = error;
+  }
+
+  const message = refreshFailureMessage(fetchError, ROOT);
+  if (!existsSync(zipPath)) {
+    console.error(`  !! ${feed.slug}: ${message} — and there is no last good archive to fall back to.`);
+    return { dir, status: "failed", message };
+  }
+  try {
+    extractArchive(zipPath, dir, feed.slug);
+  } catch (error) {
+    const fallbackMessage = `${message}; last good archive unusable: ${refreshFailureMessage(error, ROOT)}`;
+    console.error(`  !! ${feed.slug}: ${fallbackMessage}`);
+    return { dir, status: "failed", message: fallbackMessage };
+  }
+  const fetchedAt = readFetchedAt(zipPath);
+  console.error(
+    `  !! ${feed.slug}: ${message} — FALLING BACK to last good archive fetched ${fetchedAt} (${formatAge(fetchedAt)} old). ` +
+      "This feed's schedules may be out of date.",
+  );
+  return { dir, status: "fallback", fetchedAt, message };
 }
 
 function validateZipArchive(zipPath) {
@@ -295,8 +389,7 @@ function pickHeadsign(counts) {
   return best;
 }
 
-async function ingestFeed(region, feed, force) {
-  const dir = ensureZip(feed, force);
+async function ingestFeed(region, feed, dir) {
   const p = (id) => prefixed(feed.prefix, id);
   console.log(`\nIngest ${region.name} / ${feed.agencyHint} (${feed.slug})`);
 
@@ -748,18 +841,64 @@ function collectOnDiskMetas(outDir, regions) {
   return ordered;
 }
 
-function writeIndexFromDisk(outDir, regions) {
+function writeIndexFromDisk(outDir, regions, failures = []) {
   writeFileSync(
     join(outDir, "index.json"),
-    JSON.stringify(
-      {
-        builtAt: new Date().toISOString(),
-        cities: collectOnDiskMetas(outDir, regions),
-      },
-      null,
-      2,
-    ),
+    JSON.stringify(buildIndexPayload(new Date().toISOString(), collectOnDiskMetas(outDir, regions), failures), null, 2),
   );
+}
+
+/**
+ * Build one city, all-or-nothing.
+ *
+ * Every feed is attempted, even after one fails, so each outcome is reported.
+ * The city is only written when every feed produced usable data (fresh,
+ * cached or fallback) and the merge passed the coverage assert; otherwise its
+ * previous atlas stays on disk untouched and the reason is returned.
+ */
+async function ingestRegion(region, force, feedRows) {
+  const acquired = region.feeds.map((feed) => {
+    const outcome = acquireFeed(feed, force);
+    feedRows.push({ city: region.city, feed: feed.slug, agency: feed.agencyHint, url: feed.url, ...outcome, dir: undefined });
+    return { feed, outcome };
+  });
+
+  const dead = acquired.find(({ outcome }) => outcome.status === "failed");
+  if (dead) {
+    return describeRefreshFailure(region.city, dead.feed, `feed ${dead.feed.slug} unavailable: ${dead.outcome.message}`);
+  }
+
+  let merged;
+  try {
+    const pieces = [];
+    for (const { feed, outcome } of acquired) pieces.push(await ingestFeed(region, feed, outcome.dir));
+    merged = mergePieces(region, pieces);
+    await runCoverageAssert(merged);
+  } catch (error) {
+    return describeRefreshFailure(region.city, null, error, ROOT);
+  }
+
+  const stale = acquired.filter(({ outcome }) => outcome.status === "fallback");
+  if (stale.length) merged.meta.staleFeeds = stale.map(({ feed, outcome }) => staleFeedRecord(feed, outcome));
+
+  const dest = join(OUT, region.city);
+  mkdirSync(dest, { recursive: true });
+  writeJson(join(dest, "atlas.json"), {
+    meta: merged.meta,
+    routes: merged.routes,
+    stops: merged.stops,
+    calendar: merged.calendar,
+    exceptions: merged.exceptions,
+    transfers: merged.transfers,
+    services: merged.services,
+  });
+  writeJson(join(dest, "timetable.json"), merged.timetable);
+  writeJson(join(dest, "meta.json"), merged.meta);
+  console.log(
+    `  wrote ${region.city}: ${merged.routes.length} routes, ${merged.stops.length} stops, ${merged.services.length} services` +
+      (stale.length ? ` — STALE: ${stale.map(({ feed }) => feed.slug).join(", ")} from fallback archive` : ""),
+  );
+  return null;
 }
 
 async function main() {
@@ -767,32 +906,35 @@ async function main() {
   const catalog = loadCatalogFromFile(REGISTRY_PATH);
   const regions = regionsFromCatalog(catalog);
   const wanted = selectRegions(regions, args.city);
+  const feeds = [];
+  const cityFailures = [];
+  let citiesBuilt = 0;
+
   for (const region of wanted) {
-    const pieces = [];
-    for (const feed of region.feeds) {
-      pieces.push(await ingestFeed(region, feed, args.force));
+    const failure = await ingestRegion(region, args.force, feeds);
+    if (failure) {
+      cityFailures.push(failure);
+      console.error(`  !! skipped ${region.city}, previous atlas kept: ${failure.message}`);
+    } else {
+      citiesBuilt += 1;
     }
-    const merged = mergePieces(region, pieces);
-    await runCoverageAssert(merged);
-    const dest = join(OUT, region.city);
-    mkdirSync(dest, { recursive: true });
-    writeJson(join(dest, "atlas.json"), {
-      meta: merged.meta,
-      routes: merged.routes,
-      stops: merged.stops,
-      calendar: merged.calendar,
-      exceptions: merged.exceptions,
-      transfers: merged.transfers,
-      services: merged.services,
-    });
-    writeJson(join(dest, "timetable.json"), merged.timetable);
-    writeJson(join(dest, "meta.json"), merged.meta);
-    console.log(
-      `  wrote ${region.city}: ${merged.routes.length} routes, ${merged.stops.length} stops, ${merged.services.length} services`,
-    );
   }
-  writeIndexFromDisk(OUT, regions);
-  console.log("\nAtlas ready.");
+
+  const report = { citiesBuilt, citiesSkipped: cityFailures.length, feeds, cityFailures };
+  const reportPath = process.env.GTFS_REFRESH_REPORT || join(CACHE, "refresh-report.json");
+  mkdirSync(dirname(reportPath), { recursive: true });
+  writeFileSync(reportPath, `${JSON.stringify(report, null, 2)}\n`);
+
+  const code = runExitCode(report);
+  // Every city failing is not one agency's outage — it is our breakage, or the
+  // network is gone. Change nothing, so a broken run cannot quietly republish
+  // the same bytes as if it had checked them.
+  if (code !== EXIT_FAILED) writeIndexFromDisk(OUT, regions, cityFailures);
+
+  console.log(`\n${summaryMarkdown(report)}`);
+  console.log(`Refresh report: ${relative(ROOT, reportPath)}`);
+  if (code === EXIT_FAILED) console.error("No city could be rebuilt; nothing was written.");
+  return code;
 }
 
 function isEntrypoint() {
@@ -802,5 +944,5 @@ function isEntrypoint() {
 }
 
 if (isEntrypoint()) {
-  await main();
+  process.exitCode = await main();
 }

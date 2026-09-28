@@ -7,6 +7,14 @@ on:
   schedule:
     - cron: "17 */6 * * *"
   workflow_dispatch:
+    inputs:
+      drill_unreachable:
+        description: >-
+          Fire drill: comma-separated feed slugs (e.g. "stm,sttr") to point at an
+          unreachable host, exercising retry, fallback and staleness reporting.
+          A drill run never commits.
+        required: false
+        default: ""
 
 permissions:
   contents: write
@@ -27,10 +35,64 @@ jobs:
         with:
           node-version: 22
 
+      # The retry flags in scripts/gtfs-refresh.mjs depend on curl >= 7.71
+      # (--retry-all-errors). Log the runner's version so a regression is visible.
+      - name: Record curl version
+        run: curl --version | head -1
+
+      - name: Test refresh bookkeeping
+        run: node --test scripts/gtfs-refresh.test.mjs
+
+      # Last good archives from the previous run. When a feed cannot be fetched
+      # the ingest rebuilds that feed from this copy and stamps the city's meta
+      # with staleFeeds[].fetchedAt, instead of dropping the network. Only
+      # archives that passed validation are ever promoted to *.zip, so nothing
+      # corrupt can enter this cache.
+      - name: Restore last good archives
+        uses: actions/cache/restore@v4
+        with:
+          path: |
+            .cache/gtfs/*.zip
+            .cache/gtfs/*.zip.fetched.json
+          key: gtfs-archives-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: gtfs-archives-
+
       # The ingest script uses only Node built-ins and the checked-in catalog;
       # installing the Next.js dependency tree is unnecessary for this job.
+      #
+      # Exit 0 = every feed fresh. Exit 3 = DEGRADED: an atlas was written but
+      # at least one feed came from a fallback archive or a city was skipped.
+      # The step lets 3 through so the cities that did refresh still get
+      # committed; "Report refresh status" fails the job afterwards. Anything
+      # else means nothing was written and fails here.
       - name: Download and pack official feeds
-        run: node --max-old-space-size=8192 scripts/ingest-gtfs.mjs --force
+        id: ingest
+        env:
+          DRILL: ${{ inputs.drill_unreachable }}
+        run: |
+          set +e
+          overrides=""
+          for slug in ${DRILL//,/ }; do
+            if [[ ! "$slug" =~ ^[a-z0-9-]+$ ]]; then echo "::error::bad drill slug: $slug"; exit 2; fi
+            overrides+="${slug}=https://10.255.255.1/drill-unreachable.zip,"
+          done
+          if [ -n "$overrides" ]; then
+            echo "::warning title=Fire drill::Feeds pointed at an unreachable host: $DRILL. This run will not commit."
+          fi
+          GTFS_FEED_URL_OVERRIDES="$overrides" node --max-old-space-size=8192 scripts/ingest-gtfs.mjs --force
+          code=$?
+          echo "code=$code" >> "$GITHUB_OUTPUT"
+          if [ "$code" -ne 0 ] && [ "$code" -ne 3 ]; then exit "$code"; fi
+          exit 0
+
+      - name: Save last good archives
+        if: always()
+        uses: actions/cache/save@v4
+        with:
+          path: |
+            .cache/gtfs/*.zip
+            .cache/gtfs/*.zip.fetched.json
+          key: gtfs-archives-${{ github.run_id }}-${{ github.run_attempt }}
 
       - name: Keep the index timestamp stable when feeds did not change
         run: |
@@ -51,8 +113,11 @@ jobs:
           }
           NODE
 
+      # Only a real run on main publishes. A dispatch from another branch or a
+      # fire drill must never push main.
       - name: Commit changed atlas
         id: commit
+        if: github.ref == 'refs/heads/main' && inputs.drill_unreachable == ''
         run: |
           set -euo pipefail
           if git diff --quiet -- public/data; then
@@ -72,3 +137,44 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: gh workflow run deploy.yml --repo "$GITHUB_REPOSITORY" --ref main
+
+      # Partial failure is RED, on purpose. A scheduled run's warning reaches
+      # nobody; a failed one notifies. A feed served from a fallback archive is
+      # transit data getting older with no one told, and that needs a human —
+      # the agency may have moved its URL (RTL's 403 lasted twelve days). The
+      # healthy cities were already committed above, so red here means "look
+      # at this", not "nothing shipped".
+      - name: Report refresh status
+        if: always()
+        env:
+          INGEST_CODE: ${{ steps.ingest.outputs.code }}
+        run: |
+          node --input-type=module <<'NODE'
+          import { appendFileSync, existsSync, readFileSync } from "node:fs";
+          import { formatAge, runExitCode, summaryMarkdown } from "./scripts/gtfs-refresh.mjs";
+
+          const path = ".cache/gtfs/refresh-report.json";
+          const out = process.env.GITHUB_STEP_SUMMARY;
+          if (!existsSync(path)) {
+            console.log("::error title=GTFS refresh::The ingest produced no report; see the ingest step.");
+            if (out) appendFileSync(out, "### ❌ GTFS refresh produced no report\n");
+            process.exit(1);
+          }
+          const report = JSON.parse(readFileSync(path, "utf8"));
+          if (out) appendFileSync(out, summaryMarkdown(report));
+          for (const row of report.feeds) {
+            if (row.status === "fallback") {
+              console.log(`::error title=Stale GTFS: ${row.feed} (${row.city})::${row.message}. Rebuilt from the last good archive, fetched ${row.fetchedAt} (${formatAge(row.fetchedAt)} old).`);
+            } else if (row.status === "failed") {
+              console.log(`::error title=Missing GTFS: ${row.feed} (${row.city})::${row.message}. No fallback archive; ${row.city} kept its previous atlas.`);
+            }
+          }
+          for (const row of report.cityFailures) {
+            console.log(`::error title=Skipped ${row.city}::${row.message}`);
+          }
+          const code = runExitCode(report);
+          if (code !== 0) {
+            console.log(`GTFS refresh ${code === 3 ? "DEGRADED" : "FAILED"} (ingest exit ${process.env.INGEST_CODE || "?"}).`);
+            process.exit(1);
+          }
+          NODE
