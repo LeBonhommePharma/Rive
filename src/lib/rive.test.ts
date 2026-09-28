@@ -1765,9 +1765,6 @@ describe("live pulse start and stop", () => {
     assert.match(html, /id="geo-ask"/);
     const pusher = readFileSync(join(process.cwd(), "ios", "Rive", "LiveDeparturePusher.swift"), "utf8");
     assert.match(pusher, /static func end/);
-    const shell = readFileSync(join(process.cwd(), "ios", "RiveApp", "RiveApp.swift"), "utf8");
-    assert.match(shell, /riveLive/);
-    assert.match(shell, /LiveDeparturePusher.apply/);
   });
 });
 

@@ -1,0 +1,629 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 77;
+	objects = {
+
+/* Begin PBXBuildFile section */
+		059B46F391D680A18BD5560E /* TransitStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = 52CD065B30A1306FD9B46D1E /* TransitStore.swift */; };
+		160C6ECFE5C1F079839BD5E8 /* TransitLocation.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7ABEEB75C2A9110BA32A74E4 /* TransitLocation.swift */; };
+		1B058DDD30EAB8FFC2F3D9AE /* JourneyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13401DF5890C39A5B63D2F22 /* JourneyView.swift */; };
+		2DDA6F2350FC0D1E39BD4E9D /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = D137D719967569363AA68406 /* PrivacyInfo.xcprivacy */; };
+		3921F4AB250404B82BD4D6D7 /* RiveApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A14C459EDBE2F0608B836B2 /* RiveApp.swift */; };
+		5054BD125011EFA00DBDFAE2 /* ExploreView.swift in Sources */ = {isa = PBXBuildFile; fileRef = BE85C4EF9E161067D02E054E /* ExploreView.swift */; };
+		582051829ED7EDF3DA92BC5B /* TransitScheduleTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 801CAF3CAAD0BB7654112187 /* TransitScheduleTests.swift */; };
+		5AE1D0ACF8A0BC9A54CE0E50 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2248C264246189C2C56284D9 /* Assets.xcassets */; };
+		73003DB313BEC4E1E61AC431 /* data in Resources */ = {isa = PBXBuildFile; fileRef = FC8F381F415E5C6727476392 /* data */; };
+		7B5383C8990FECB475B9B18A /* AboutView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D7B65A223B9A841E433C3E88 /* AboutView.swift */; };
+		845897DBC0AC74B5FE322A97 /* RiveRootView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 933C619C036F4B0928410856 /* RiveRootView.swift */; };
+		93CF9169307184AD81AC9F37 /* TransitComponents.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF945D30348602D4A9144320 /* TransitComponents.swift */; };
+		BE7805ADE3848E9C4FE4B50B /* RiveKit in Frameworks */ = {isa = PBXBuildFile; productRef = 0A57DD0B7C3A8C601432DB48 /* RiveKit */; };
+		C169EDEC058B6E865FDF3CB8 /* StopDetailView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5EC02615E9446A11C59BFA6A /* StopDetailView.swift */; };
+		DE408F313090817A970AA112 /* RiveKit in Frameworks */ = {isa = PBXBuildFile; productRef = EF6E5A25860C10396D4FF667 /* RiveKit */; };
+		E3228698FC4BF63034625427 /* BundledDataTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 484300B104AF7B053FFBBF32 /* BundledDataTests.swift */; };
+		FD537F97559B84E9504F4702 /* RiveUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4F0E9B521CE5EC6E0D64102B /* RiveUITests.swift */; };
+/* End PBXBuildFile section */
+
+/* Begin PBXContainerItemProxy section */
+		1DBB620DFE45A8633D818A55 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BF6DB54377F5E84BACA285F2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C5E2A5396ECAB8B046B5C14A;
+			remoteInfo = Rive;
+		};
+		F8C81FD6C394FD9C38C43BE2 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = BF6DB54377F5E84BACA285F2 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C5E2A5396ECAB8B046B5C14A;
+			remoteInfo = Rive;
+		};
+/* End PBXContainerItemProxy section */
+
+/* Begin PBXFileReference section */
+		059740EC3CA29B55A2295E76 /* Rive.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = Rive.app; sourceTree = BUILT_PRODUCTS_DIR; };
+		0A14C459EDBE2F0608B836B2 /* RiveApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiveApp.swift; sourceTree = "<group>"; };
+		0CEC1770DA15DE83E7DF6D3C /* RiveKit */ = {isa = PBXFileReference; lastKnownFileType = folder; name = RiveKit; path = ../native/RiveKit; sourceTree = SOURCE_ROOT; };
+		13401DF5890C39A5B63D2F22 /* JourneyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JourneyView.swift; sourceTree = "<group>"; };
+		2248C264246189C2C56284D9 /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
+		480BA24F5AADF6A3D7A2B388 /* RiveUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = RiveUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		484300B104AF7B053FFBBF32 /* BundledDataTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BundledDataTests.swift; sourceTree = "<group>"; };
+		4F0E9B521CE5EC6E0D64102B /* RiveUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiveUITests.swift; sourceTree = "<group>"; };
+		52CD065B30A1306FD9B46D1E /* TransitStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransitStore.swift; sourceTree = "<group>"; };
+		5EC02615E9446A11C59BFA6A /* StopDetailView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StopDetailView.swift; sourceTree = "<group>"; };
+		7ABEEB75C2A9110BA32A74E4 /* TransitLocation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransitLocation.swift; sourceTree = "<group>"; };
+		801CAF3CAAD0BB7654112187 /* TransitScheduleTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransitScheduleTests.swift; sourceTree = "<group>"; };
+		933C619C036F4B0928410856 /* RiveRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RiveRootView.swift; sourceTree = "<group>"; };
+		BE85C4EF9E161067D02E054E /* ExploreView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExploreView.swift; sourceTree = "<group>"; };
+		CF945D30348602D4A9144320 /* TransitComponents.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TransitComponents.swift; sourceTree = "<group>"; };
+		D0D27C82906F4A3D11E6CA09 /* RiveTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = RiveTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		D137D719967569363AA68406 /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
+		D522C1CDE11EEDC6C37ABDAA /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		D7B65A223B9A841E433C3E88 /* AboutView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AboutView.swift; sourceTree = "<group>"; };
+		FC8F381F415E5C6727476392 /* data */ = {isa = PBXFileReference; lastKnownFileType = folder; name = data; path = ../public/data; sourceTree = SOURCE_ROOT; };
+/* End PBXFileReference section */
+
+/* Begin PBXFrameworksBuildPhase section */
+		81026D590028D8EE3E3D3D0B /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				BE7805ADE3848E9C4FE4B50B /* RiveKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		90D382ABD519A09596BEE38C /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				DE408F313090817A970AA112 /* RiveKit in Frameworks */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
+/* Begin PBXGroup section */
+		0EF131BBB230883CE47DA582 /* RiveUITests */ = {
+			isa = PBXGroup;
+			children = (
+				4F0E9B521CE5EC6E0D64102B /* RiveUITests.swift */,
+			);
+			path = RiveUITests;
+			sourceTree = "<group>";
+		};
+		5D91100953E27DE828291682 /* RiveApp */ = {
+			isa = PBXGroup;
+			children = (
+				D7B65A223B9A841E433C3E88 /* AboutView.swift */,
+				2248C264246189C2C56284D9 /* Assets.xcassets */,
+				BE85C4EF9E161067D02E054E /* ExploreView.swift */,
+				D522C1CDE11EEDC6C37ABDAA /* Info.plist */,
+				13401DF5890C39A5B63D2F22 /* JourneyView.swift */,
+				D137D719967569363AA68406 /* PrivacyInfo.xcprivacy */,
+				0A14C459EDBE2F0608B836B2 /* RiveApp.swift */,
+				933C619C036F4B0928410856 /* RiveRootView.swift */,
+				5EC02615E9446A11C59BFA6A /* StopDetailView.swift */,
+				CF945D30348602D4A9144320 /* TransitComponents.swift */,
+				7ABEEB75C2A9110BA32A74E4 /* TransitLocation.swift */,
+				52CD065B30A1306FD9B46D1E /* TransitStore.swift */,
+			);
+			path = RiveApp;
+			sourceTree = "<group>";
+		};
+		709CA838192485EA2912CC85 /* RiveTests */ = {
+			isa = PBXGroup;
+			children = (
+				484300B104AF7B053FFBBF32 /* BundledDataTests.swift */,
+			);
+			path = RiveTests;
+			sourceTree = "<group>";
+		};
+		96F8FBAC212C33920349D6B3 /* Products */ = {
+			isa = PBXGroup;
+			children = (
+				059740EC3CA29B55A2295E76 /* Rive.app */,
+				D0D27C82906F4A3D11E6CA09 /* RiveTests.xctest */,
+				480BA24F5AADF6A3D7A2B388 /* RiveUITests.xctest */,
+			);
+			name = Products;
+			sourceTree = "<group>";
+		};
+		B0709852E451B7526C5765D8 = {
+			isa = PBXGroup;
+			children = (
+				FC8F381F415E5C6727476392 /* data */,
+				EA7EF81F8BADDD721C58FA9F /* Packages */,
+				5D91100953E27DE828291682 /* RiveApp */,
+				C1B265577744BF9AB4A349ED /* RiveKitTests */,
+				709CA838192485EA2912CC85 /* RiveTests */,
+				0EF131BBB230883CE47DA582 /* RiveUITests */,
+				96F8FBAC212C33920349D6B3 /* Products */,
+			);
+			sourceTree = "<group>";
+		};
+		C1B265577744BF9AB4A349ED /* RiveKitTests */ = {
+			isa = PBXGroup;
+			children = (
+				801CAF3CAAD0BB7654112187 /* TransitScheduleTests.swift */,
+			);
+			name = RiveKitTests;
+			path = ../native/RiveKit/Tests/RiveKitTests;
+			sourceTree = "<group>";
+		};
+		EA7EF81F8BADDD721C58FA9F /* Packages */ = {
+			isa = PBXGroup;
+			children = (
+				0CEC1770DA15DE83E7DF6D3C /* RiveKit */,
+			);
+			name = Packages;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXNativeTarget section */
+		01D8A1020A13D5C1C7BF3B62 /* RiveTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = DB5F054E4A67270CE145375A /* Build configuration list for PBXNativeTarget "RiveTests" */;
+			buildPhases = (
+				FCBB03D9092AE461E9D40115 /* Sources */,
+				90D382ABD519A09596BEE38C /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				B4D9FC079945958FD241A972 /* PBXTargetDependency */,
+			);
+			name = RiveTests;
+			packageProductDependencies = (
+				EF6E5A25860C10396D4FF667 /* RiveKit */,
+			);
+			productName = RiveTests;
+			productReference = D0D27C82906F4A3D11E6CA09 /* RiveTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
+		421A30E1277D7366652394CC /* RiveUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 80AB435EF83133778BE70B85 /* Build configuration list for PBXNativeTarget "RiveUITests" */;
+			buildPhases = (
+				51475A1D542BE9B6D75635FF /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C52CE5EDBFA81D861BDBD684 /* PBXTargetDependency */,
+			);
+			name = RiveUITests;
+			packageProductDependencies = (
+			);
+			productName = RiveUITests;
+			productReference = 480BA24F5AADF6A3D7A2B388 /* RiveUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
+		C5E2A5396ECAB8B046B5C14A /* Rive */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = BC0BD877DE216874243A46D4 /* Build configuration list for PBXNativeTarget "Rive" */;
+			buildPhases = (
+				5E11E923D62A21BADBC0B7FA /* Sources */,
+				8F1A1C04A01BD531EDECEC12 /* Resources */,
+				81026D590028D8EE3E3D3D0B /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = Rive;
+			packageProductDependencies = (
+				0A57DD0B7C3A8C601432DB48 /* RiveKit */,
+			);
+			productName = Rive;
+			productReference = 059740EC3CA29B55A2295E76 /* Rive.app */;
+			productType = "com.apple.product-type.application";
+		};
+/* End PBXNativeTarget section */
+
+/* Begin PBXProject section */
+		BF6DB54377F5E84BACA285F2 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = YES;
+				LastUpgradeCheck = 2600;
+				TargetAttributes = {
+					01D8A1020A13D5C1C7BF3B62 = {
+						DevelopmentTeam = ZJLX84G8QV;
+						ProvisioningStyle = Automatic;
+					};
+					421A30E1277D7366652394CC = {
+						DevelopmentTeam = ZJLX84G8QV;
+						ProvisioningStyle = Automatic;
+						TestTargetID = C5E2A5396ECAB8B046B5C14A;
+					};
+					C5E2A5396ECAB8B046B5C14A = {
+						DevelopmentTeam = ZJLX84G8QV;
+						ProvisioningStyle = Automatic;
+					};
+				};
+			};
+			buildConfigurationList = 8A12E674F3FE83DA8A40D984 /* Build configuration list for PBXProject "Rive" */;
+			developmentRegion = fr;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				Base,
+				fr,
+			);
+			mainGroup = B0709852E451B7526C5765D8;
+			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				158EE3AE7CDFA569782E7656 /* XCLocalSwiftPackageReference "../native/RiveKit" */,
+			);
+			preferredProjectObjectVersion = 77;
+			productRefGroup = 96F8FBAC212C33920349D6B3 /* Products */;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				C5E2A5396ECAB8B046B5C14A /* Rive */,
+				01D8A1020A13D5C1C7BF3B62 /* RiveTests */,
+				421A30E1277D7366652394CC /* RiveUITests */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXResourcesBuildPhase section */
+		8F1A1C04A01BD531EDECEC12 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				5AE1D0ACF8A0BC9A54CE0E50 /* Assets.xcassets in Resources */,
+				2DDA6F2350FC0D1E39BD4E9D /* PrivacyInfo.xcprivacy in Resources */,
+				73003DB313BEC4E1E61AC431 /* data in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXResourcesBuildPhase section */
+
+/* Begin PBXSourcesBuildPhase section */
+		51475A1D542BE9B6D75635FF /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FD537F97559B84E9504F4702 /* RiveUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		5E11E923D62A21BADBC0B7FA /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				7B5383C8990FECB475B9B18A /* AboutView.swift in Sources */,
+				5054BD125011EFA00DBDFAE2 /* ExploreView.swift in Sources */,
+				1B058DDD30EAB8FFC2F3D9AE /* JourneyView.swift in Sources */,
+				3921F4AB250404B82BD4D6D7 /* RiveApp.swift in Sources */,
+				845897DBC0AC74B5FE322A97 /* RiveRootView.swift in Sources */,
+				C169EDEC058B6E865FDF3CB8 /* StopDetailView.swift in Sources */,
+				93CF9169307184AD81AC9F37 /* TransitComponents.swift in Sources */,
+				160C6ECFE5C1F079839BD5E8 /* TransitLocation.swift in Sources */,
+				059B46F391D680A18BD5560E /* TransitStore.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FCBB03D9092AE461E9D40115 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				E3228698FC4BF63034625427 /* BundledDataTests.swift in Sources */,
+				582051829ED7EDF3DA92BC5B /* TransitScheduleTests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		B4D9FC079945958FD241A972 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C5E2A5396ECAB8B046B5C14A /* Rive */;
+			targetProxy = 1DBB620DFE45A8633D818A55 /* PBXContainerItemProxy */;
+		};
+		C52CE5EDBFA81D861BDBD684 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C5E2A5396ECAB8B046B5C14A /* Rive */;
+			targetProxy = F8C81FD6C394FD9C38C43BE2 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
+
+/* Begin XCBuildConfiguration section */
+		1EFF257C23C00364C4A60652 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = dwarf;
+				DEVELOPMENT_TEAM = ZJLX84G8QV;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				ENABLE_TESTABILITY = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"$(inherited)",
+					"DEBUG=1",
+				);
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
+				MTL_FAST_MATH = YES;
+				ONLY_ACTIVE_ARCH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
+				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Debug;
+		};
+		22A8646A93EC125D62E12953 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.thebonhomme.rive.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Rive;
+			};
+			name = Release;
+		};
+		309C4647CA4B27D0D8D7467F /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = RiveApp/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.thebonhomme.rive;
+				PRODUCT_NAME = Rive;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Release;
+		};
+		6019A30D5BC8363FD9EC6B88 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.thebonhomme.rive.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Rive.app/Rive";
+			};
+			name = Debug;
+		};
+		80DD0D3C5CC5B899D5EA0E6A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_IDENTITY = "iPhone Developer";
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = RiveApp/Info.plist;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.thebonhomme.rive;
+				PRODUCT_NAME = Rive;
+				SDKROOT = iphoneos;
+				SUPPORTS_MACCATALYST = NO;
+				TARGETED_DEVICE_FAMILY = "1,2";
+			};
+			name = Debug;
+		};
+		E58B8CED2654273F59B7E947 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.thebonhomme.rive.tests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Rive.app/Rive";
+			};
+			name = Release;
+		};
+		EE38F28EF401A239213206E4 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				CLANG_ANALYZER_NONNULL = YES;
+				CLANG_ANALYZER_NUMBER_OBJECT_CONVERSION = YES_AGGRESSIVE;
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++14";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_ENABLE_MODULES = YES;
+				CLANG_ENABLE_OBJC_ARC = YES;
+				CLANG_ENABLE_OBJC_WEAK = YES;
+				CLANG_WARN_BLOCK_CAPTURE_AUTORELEASING = YES;
+				CLANG_WARN_BOOL_CONVERSION = YES;
+				CLANG_WARN_COMMA = YES;
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_DEPRECATED_OBJC_IMPLEMENTATIONS = YES;
+				CLANG_WARN_DIRECT_OBJC_ISA_USAGE = YES_ERROR;
+				CLANG_WARN_DOCUMENTATION_COMMENTS = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INFINITE_RECURSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN_NON_LITERAL_NULL_CONVERSION = YES;
+				CLANG_WARN_OBJC_IMPLICIT_RETAIN_SELF = YES;
+				CLANG_WARN_OBJC_LITERAL_CONVERSION = YES;
+				CLANG_WARN_OBJC_ROOT_CLASS = YES_ERROR;
+				CLANG_WARN_QUOTED_INCLUDE_IN_FRAMEWORK_HEADER = YES;
+				CLANG_WARN_RANGE_LOOP_ANALYSIS = YES;
+				CLANG_WARN_STRICT_PROTOTYPES = YES;
+				CLANG_WARN_SUSPICIOUS_MOVE = YES;
+				CLANG_WARN_UNGUARDED_AVAILABILITY = YES_AGGRESSIVE;
+				CLANG_WARN_UNREACHABLE_CODE = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				CODE_SIGN_STYLE = Automatic;
+				COPY_PHASE_STRIP = NO;
+				CURRENT_PROJECT_VERSION = 1;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				DEVELOPMENT_TEAM = ZJLX84G8QV;
+				ENABLE_NS_ASSERTIONS = NO;
+				ENABLE_STRICT_OBJC_MSGSEND = YES;
+				GCC_C_LANGUAGE_STANDARD = gnu11;
+				GCC_NO_COMMON_BLOCKS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES_ERROR;
+				GCC_WARN_UNDECLARED_SELECTOR = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
+				GCC_WARN_UNUSED_FUNCTION = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0.0;
+				MTL_ENABLE_DEBUG_INFO = NO;
+				MTL_FAST_MATH = YES;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SDKROOT = iphoneos;
+				SWIFT_COMPILATION_MODE = wholemodule;
+				SWIFT_OPTIMIZATION_LEVEL = "-O";
+				SWIFT_VERSION = 6.0;
+			};
+			name = Release;
+		};
+		FCDAA881A7F360816AA79668 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				GENERATE_INFOPLIST_FILE = YES;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@executable_path/Frameworks",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.thebonhomme.rive.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = Rive;
+			};
+			name = Debug;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		80AB435EF83133778BE70B85 /* Build configuration list for PBXNativeTarget "RiveUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				FCDAA881A7F360816AA79668 /* Debug */,
+				22A8646A93EC125D62E12953 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		8A12E674F3FE83DA8A40D984 /* Build configuration list for PBXProject "Rive" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				1EFF257C23C00364C4A60652 /* Debug */,
+				EE38F28EF401A239213206E4 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		BC0BD877DE216874243A46D4 /* Build configuration list for PBXNativeTarget "Rive" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				80DD0D3C5CC5B899D5EA0E6A /* Debug */,
+				309C4647CA4B27D0D8D7467F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		DB5F054E4A67270CE145375A /* Build configuration list for PBXNativeTarget "RiveTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				6019A30D5BC8363FD9EC6B88 /* Debug */,
+				E58B8CED2654273F59B7E947 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+/* End XCConfigurationList section */
+
+/* Begin XCLocalSwiftPackageReference section */
+		158EE3AE7CDFA569782E7656 /* XCLocalSwiftPackageReference "../native/RiveKit" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = ../native/RiveKit;
+		};
+/* End XCLocalSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		0A57DD0B7C3A8C601432DB48 /* RiveKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = RiveKit;
+		};
+		EF6E5A25860C10396D4FF667 /* RiveKit */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = RiveKit;
+		};
+/* End XCSwiftPackageProductDependency section */
+	};
+	rootObject = BF6DB54377F5E84BACA285F2 /* Project object */;
+}

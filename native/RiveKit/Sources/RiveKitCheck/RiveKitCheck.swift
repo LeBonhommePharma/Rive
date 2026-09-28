@@ -106,11 +106,6 @@ enum RiveKitCheck {
     let pusher = try String(contentsOf: pusherURL)
     check("live pusher can end", pusher.contains("static func end"))
     check("live pusher applies web command", pusher.contains("static func apply"))
-    let shellURL = repoRoot.appendingPathComponent("ios/RiveApp/RiveApp.swift")
-    let shell = try String(contentsOf: shellURL)
-    check("iphone shell receives riveLive", shell.contains("riveLive"))
-    check("iphone shell receives riveShade", shell.contains("riveShade"))
-    check("iphone shell keeps AtlasWebView", shell.contains("struct AtlasWebView"))
 
     let toward = SIMD3<Float>(1, 0, 0)
     let away = SIMD3<Float>(-1, 0, 0)

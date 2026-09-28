@@ -4,6 +4,10 @@ Atlas public pour le **RTC** et la **STLévis** à Québec, la **STM**, la **STL
 
 Logiciel sous **Apache License 2.0**. Voir `LICENSE` et `NOTICE`.
 
+## Application iPhone et iPad
+
+L’application native **Rive** utilise SwiftUI, MapKit et les horaires GTFS inclus pour rechercher des arrêts, consulter les départs, enregistrer des favoris et proposer des trajets. Ouvre [`ios/Rive.xcodeproj`](ios/Rive.xcodeproj), schéma **Rive**. Les instructions de test, de signature et d’export App Store sont dans [`ios/README.md`](ios/README.md).
+
 Ouvre `/Transit` pour l'atlas autonome. Un champ, un arrêt, les prochaines heures. Pas besoin d'être sur le quai.
 
 Les horaires viennent des flux GTFS officiels:

@@ -1,0 +1,66 @@
+name: Rive
+options:
+  bundleIdPrefix: com.thebonhomme
+  deploymentTarget:
+    iOS: '17.0'
+  developmentLanguage: fr
+  xcodeVersion: '26.0'
+packages:
+  RiveKit:
+    path: ../native/RiveKit
+settings:
+  base:
+    SWIFT_VERSION: '6.0'
+    DEVELOPMENT_TEAM: ZJLX84G8QV
+    CODE_SIGN_STYLE: Automatic
+    MARKETING_VERSION: '1.0.0'
+    CURRENT_PROJECT_VERSION: '1'
+targets:
+  Rive:
+    type: application
+    platform: iOS
+    sources:
+      - path: RiveApp
+      - path: ../public/data
+        type: folder
+        buildPhase: resources
+    dependencies:
+      - package: RiveKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.thebonhomme.rive
+        PRODUCT_NAME: Rive
+        TARGETED_DEVICE_FAMILY: '1,2'
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        GENERATE_INFOPLIST_FILE: NO
+        INFOPLIST_FILE: RiveApp/Info.plist
+        SUPPORTS_MACCATALYST: NO
+    scheme:
+      testTargets:
+        - RiveTests
+        - RiveUITests
+      gatherCoverageData: true
+  RiveTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: RiveTests
+      - path: ../native/RiveKit/Tests/RiveKitTests
+    dependencies:
+      - target: Rive
+      - package: RiveKit
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.thebonhomme.rive.tests
+        GENERATE_INFOPLIST_FILE: YES
+  RiveUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: RiveUITests
+    dependencies:
+      - target: Rive
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.thebonhomme.rive.uitests
+        GENERATE_INFOPLIST_FILE: YES

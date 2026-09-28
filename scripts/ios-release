@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+RIVE_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+RIVE_OUTPUT="${RIVE_BUILD_DIR:-$RIVE_ROOT/build/ios}"
+RIVE_ACTION="${1:-archive}"
+mkdir -p "$RIVE_OUTPUT"
+
+# Xcode's system rsync must spawn a compatible system worker, not Homebrew rsync.
+case "$RIVE_ACTION" in
+  archive)
+    RIVE_SIGNING=(-allowProvisioningUpdates)
+    if [[ "${RIVE_UNSIGNED:-0}" == "1" ]]; then
+      RIVE_SIGNING=(CODE_SIGNING_ALLOWED=NO)
+    fi
+    /usr/bin/env PATH=/usr/bin:/bin:/usr/sbin:/sbin /usr/bin/xcodebuild \
+      -project "$RIVE_ROOT/ios/Rive.xcodeproj" -scheme Rive -configuration Release \
+      -destination 'generic/platform=iOS' -derivedDataPath "$RIVE_OUTPUT/DerivedData" \
+      -archivePath "$RIVE_OUTPUT/Rive.xcarchive" "${RIVE_SIGNING[@]}" archive
+    ;;
+  export)
+    /usr/bin/env PATH=/usr/bin:/bin:/usr/sbin:/sbin /usr/bin/xcodebuild \
+      -exportArchive -archivePath "$RIVE_OUTPUT/Rive.xcarchive" \
+      -exportPath "$RIVE_OUTPUT/AppStore" \
+      -exportOptionsPlist "$RIVE_ROOT/ios/ExportOptions.plist" -allowProvisioningUpdates
+    ;;
+  *)
+    printf 'Usage: %s [archive|export]\n' "$0" >&2
+    exit 2
+    ;;
+esac

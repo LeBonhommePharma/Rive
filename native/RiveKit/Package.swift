@@ -23,5 +23,6 @@ let package = Package(
       name: "RiveKitCheck",
       dependencies: ["RiveKit"]
     ),
+    .testTarget(name: "RiveKitTests", dependencies: ["RiveKit"]),
   ]
 )

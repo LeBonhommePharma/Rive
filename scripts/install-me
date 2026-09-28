@@ -71,10 +71,10 @@ else
 fi
 log "  Personal Team recipe (when Xcode is installed):"
 log "  1. Plug in your iPhone. Trust this computer."
-log "  2. open $ROOT/native/RiveKit/Package.swift"
-log "  3. iOS app: $ROOT/ios/RiveApp/RiveApp.swift — Watch app: $ROOT/ios/RiveWatch/RiveWatchApp.swift"
+log "  2. open $ROOT/ios/Rive.xcodeproj"
+log "  3. Choose the Rive scheme (native iPhone/iPad). Watch prototypes are not included."
 log "  4. Signing & Capabilities → Team → your Personal Team. Bundle ID unique to you."
-log "  5. Product → Destination → your iPhone → Run. Then the Watch destination → Run."
+log "  5. Product → Destination → your iPhone → Run."
 log "  6. On the phone: Settings → VPN & Device Management → trust the developer cert."
 log "  7. Re-run from Xcode every 7 days. Never the App Store."
 
