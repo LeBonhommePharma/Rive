@@ -280,6 +280,26 @@ describe("overlay polish and escape", () => {
     assert.ok(contrastRatio(cssToken(night, "--chip-ink"), cssToken(night, "--chip")) >= 4.5);
   });
 
+  it("ships brand.css palette with AA contrast and data-driven route colors", () => {
+    const brand = readFileSync(join(process.cwd(), "public", "Transit", "brand.css"), "utf8");
+    const html = readFileSync(join(process.cwd(), "public", "Transit", "index.html"), "utf8");
+    assert.match(html, /href="\.\/brand\.css"/);
+    assert.match(html, /href="\.\/polish\.css"/);
+    assert.match(brand, /Agency route colors remain data-driven/);
+    assert.doesNotMatch(brand, /\.line\s*\{[^}]*background:/);
+    const roots = cssBlock(brand, ":root {");
+    const day = cssBlock(brand, ":root, html.day");
+    const night = cssBlock(brand, "html.night");
+    assert.ok(contrastRatio(cssToken(day, "--ink"), cssToken(day, "--paper")) >= 4.5);
+    assert.ok(contrastRatio(cssToken(day, "--muted"), cssToken(day, "--paper")) >= 4.5);
+    assert.ok(contrastRatio(cssToken(night, "--ink"), cssToken(night, "--paper")) >= 4.5);
+    assert.ok(contrastRatio(cssToken(night, "--muted"), cssToken(night, "--paper")) >= 4.5);
+    assert.ok(contrastRatio(cssToken(roots, "--brand-ink"), cssToken(roots, "--brand-mint")) >= 4.5);
+    const src = readFileSync(join(process.cwd(), "public", "Transit", "app.js"), "utf8");
+    assert.match(src, /safeColor\(line\.color\)/);
+    assert.match(src, /getElementById\("load-city"\)/);
+  });
+
   it("shows one theme glyph and one Jour/Nuit label per day or night", async () => {
     const html = readFileSync(join(process.cwd(), "public", "Transit", "index.html"), "utf8");
     const dayMoon = winningDisplay(html, themeGlyph("day", "moon"));

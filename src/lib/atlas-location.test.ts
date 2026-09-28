@@ -73,6 +73,7 @@ function setup() {
     detectCity: (lon: number) => lon < -72 ? "montreal" : "quebec",
     loadCity: async (city: string) => { state.city = city; return true; },
     showLoadError: noop,
+    paintPanCityHint: noop,
   });
   vm.runInContext(`let locationRequest = 0, locationDeadline = 0, userAskedLocation = false, locationHelpWasShown = false;\n${uiHelpers}\n${projectionCode}\n${unprojectionCode}\n${distanceCode}\n${applyHereCode}\n${citySwitchCode}\n${locationCode}`, context);
   return { state, element, requests, watches, cleared, timers, events, flights, context, run: (code: string) => vm.runInContext(code, context) };

@@ -7,7 +7,7 @@ import {
   buildIndexPayload,
   describeRefreshFailure,
   refreshFailureMessage,
-} from "../../scripts/gtfs-skip.mjs";
+} from "../../scripts/gtfs-refresh.mjs";
 import { regionsFromCatalog } from "../../scripts/gtfs-catalog.mjs";
 import { coverageEndYyyymmdd } from "../../scripts/gtfs-coverage.mjs";
 import type { Atlas, AtlasStop, Timetable } from "./atlas/types";
@@ -145,10 +145,11 @@ describe("city-scoped refresh skip", () => {
   it("isolates the failure to one city instead of aborting the whole ingest", () => {
     const source = readFileSync(ingestPath, "utf8");
     // The bug: one `await ingestFeed(...)` throwing out of the region loop
-    // took Québec, Sherbrooke and Trois-Rivières down with Montréal.
-    assert.match(source, /for \(const region of wanted\) \{\s*try \{/);
-    assert.match(source, /await ingestRegion\(region, args\.force\)/);
-    assert.match(source, /failures\.push\(describeRefreshFailure\(/);
+    // took Québec, Sherbrooke and Trois-Rivières down with Montréal. A region
+    // now returns its failure record instead of throwing past the loop.
+    assert.match(source, /for \(const region of wanted\) \{\s*const failure = await ingestRegion\(region, args\.force, feeds\);/);
+    assert.match(source, /cityFailures\.push\(failure\)/);
+    assert.match(source, /return describeRefreshFailure\(/);
   });
 
   it("keeps the coverage assert and writes nothing for a city that fails it", () => {
@@ -163,13 +164,9 @@ describe("city-scoped refresh skip", () => {
 
   it("fails the run when no city could be built at all", () => {
     const source = readFileSync(ingestPath, "utf8");
-    assert.match(source, /if \(built === 0\)/);
     assert.match(source, /No city could be rebuilt/);
     // The index must not be rewritten on a total failure.
-    assert.ok(
-      source.indexOf("No city could be rebuilt") < source.indexOf("writeIndexFromDisk(OUT, regions, failures)"),
-      "a run that built nothing must throw before touching index.json",
-    );
+    assert.match(source, /if \(code !== EXIT_FAILED\) writeIndexFromDisk\(OUT, regions, cityFailures\)/);
   });
 });
 

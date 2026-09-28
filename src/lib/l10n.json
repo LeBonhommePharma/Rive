@@ -18,7 +18,10 @@
     "myPosition": "My location",
     "close": "Close",
     "searchTrip": "Find a trip",
-    "licenseLine": "Rive, Apache License 2.0."
+    "licenseLine": "Rive, Apache License 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "Near here",
+    "noNearby": "No departures near here."
   },
   "en-GB": {
     "whereTo": "Where to",
@@ -39,7 +42,10 @@
     "myPosition": "My location",
     "close": "Close",
     "searchTrip": "Find a journey",
-    "licenseLine": "Rive, Apache License 2.0."
+    "licenseLine": "Rive, Apache License 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "Near here",
+    "noNearby": "No departures near here."
   },
   "fr": {
     "whereTo": "Où vas-tu",
@@ -60,7 +66,10 @@
     "myPosition": "Ma position",
     "close": "Fermer",
     "searchTrip": "Chercher un trajet",
-    "licenseLine": "Rive, licence Apache 2.0."
+    "licenseLine": "Rive, licence Apache 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "près d'ici",
+    "noNearby": "Aucun passage près d'ici."
   },
   "fr-CA": {
     "whereTo": "Où vas-tu",
@@ -81,7 +90,10 @@
     "myPosition": "Ma position",
     "close": "Fermer",
     "searchTrip": "Chercher un trajet",
-    "licenseLine": "Rive, licence Apache 2.0."
+    "licenseLine": "Rive, licence Apache 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "près d'ici",
+    "noNearby": "Aucun passage près d'ici."
   },
   "es": {
     "whereTo": "¿Adónde vas?",
@@ -102,7 +114,10 @@
     "myPosition": "Mi posición",
     "close": "Cerrar",
     "searchTrip": "Buscar un viaje",
-    "licenseLine": "Rive, licencia Apache 2.0."
+    "licenseLine": "Rive, licencia Apache 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "Cerca de aquí",
+    "noNearby": "No hay salidas cerca."
   },
   "es-MX": {
     "whereTo": "¿A dónde vas?",
@@ -123,7 +138,10 @@
     "myPosition": "Mi ubicación",
     "close": "Cerrar",
     "searchTrip": "Buscar un viaje",
-    "licenseLine": "Rive, licencia Apache 2.0."
+    "licenseLine": "Rive, licencia Apache 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "Cerca de aquí",
+    "noNearby": "No hay salidas cerca."
   },
   "de": {
     "whereTo": "Wohin",
@@ -144,7 +162,10 @@
     "myPosition": "Mein Standort",
     "close": "Schließen",
     "searchTrip": "Verbindung suchen",
-    "licenseLine": "Rive, Apache-Lizenz 2.0."
+    "licenseLine": "Rive, Apache-Lizenz 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "In der Nähe",
+    "noNearby": "Keine Abfahrten in der Nähe."
   },
   "it": {
     "whereTo": "Dove vai",
@@ -165,7 +186,10 @@
     "myPosition": "La mia posizione",
     "close": "Chiudi",
     "searchTrip": "Cerca un percorso",
-    "licenseLine": "Rive, licenza Apache 2.0."
+    "licenseLine": "Rive, licenza Apache 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "Qui vicino",
+    "noNearby": "Nessuna partenza qui vicino."
   },
   "pt-BR": {
     "whereTo": "Para onde",
@@ -186,7 +210,10 @@
     "myPosition": "Minha posição",
     "close": "Fechar",
     "searchTrip": "Buscar um trajeto",
-    "licenseLine": "Rive, licença Apache 2.0."
+    "licenseLine": "Rive, licença Apache 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "Perto daqui",
+    "noNearby": "Nenhuma partida por perto."
   },
   "pt-PT": {
     "whereTo": "Para onde",
@@ -207,7 +234,10 @@
     "myPosition": "A minha posição",
     "close": "Fechar",
     "searchTrip": "Procurar um percurso",
-    "licenseLine": "Rive, licença Apache 2.0."
+    "licenseLine": "Rive, licença Apache 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "Perto daqui",
+    "noNearby": "Sem partidas por perto."
   },
   "ja": {
     "whereTo": "どこへ",
@@ -228,7 +258,10 @@
     "myPosition": "現在地",
     "close": "閉じる",
     "searchTrip": "経路を探す",
-    "licenseLine": "Rive、Apache License 2.0。"
+    "licenseLine": "Rive、Apache License 2.0。",
+    "aller": "Aller",
+    "nearbyNow": "付近",
+    "noNearby": "近くに出発はありません。"
   },
   "ko": {
     "whereTo": "어디로",
@@ -249,7 +282,10 @@
     "myPosition": "내 위치",
     "close": "닫기",
     "searchTrip": "경로 찾기",
-    "licenseLine": "Rive, Apache License 2.0."
+    "licenseLine": "Rive, Apache License 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "근처",
+    "noNearby": "근처에 출발이 없습니다."
   },
   "zh-Hans": {
     "whereTo": "去哪里",
@@ -270,7 +306,10 @@
     "myPosition": "我的位置",
     "close": "关闭",
     "searchTrip": "查找行程",
-    "licenseLine": "Rive，Apache 2.0 许可。"
+    "licenseLine": "Rive，Apache 2.0 许可。",
+    "aller": "Aller",
+    "nearbyNow": "附近",
+    "noNearby": "附近没有班次。"
   },
   "zh-Hant": {
     "whereTo": "要去哪裡",
@@ -291,7 +330,10 @@
     "myPosition": "我的位置",
     "close": "關閉",
     "searchTrip": "尋找行程",
-    "licenseLine": "Rive，Apache 2.0 授權。"
+    "licenseLine": "Rive，Apache 2.0 授權。",
+    "aller": "Aller",
+    "nearbyNow": "附近",
+    "noNearby": "附近沒有班次。"
   },
   "ar": {
     "whereTo": "إلى أين",
@@ -312,7 +354,10 @@
     "myPosition": "موقعي",
     "close": "إغلاق",
     "searchTrip": "ابحث عن مسار",
-    "licenseLine": "Rive، رخصة أباتشي 2.0."
+    "licenseLine": "Rive، رخصة أباتشي 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "بالقرب",
+    "noNearby": "لا رحلات قريبة."
   },
   "nl": {
     "whereTo": "Waarheen",
@@ -333,7 +378,10 @@
     "myPosition": "Mijn locatie",
     "close": "Sluiten",
     "searchTrip": "Zoek een rit",
-    "licenseLine": "Rive, Apache-licentie 2.0."
+    "licenseLine": "Rive, Apache-licentie 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "Hier in de buurt",
+    "noNearby": "Geen vertrekken in de buurt."
   },
   "sv": {
     "whereTo": "Vart",
@@ -354,7 +402,10 @@
     "myPosition": "Min plats",
     "close": "Stäng",
     "searchTrip": "Hitta en resa",
-    "licenseLine": "Rive, Apache-licens 2.0."
+    "licenseLine": "Rive, Apache-licens 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "Nära här",
+    "noNearby": "Inga avgångar i närheten."
   },
   "da": {
     "whereTo": "Hvor hen",
@@ -375,7 +426,10 @@
     "myPosition": "Min position",
     "close": "Luk",
     "searchTrip": "Find en rute",
-    "licenseLine": "Rive, Apache-licens 2.0."
+    "licenseLine": "Rive, Apache-licens 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "Her i nærheden",
+    "noNearby": "Ingen afgange i nærheden."
   },
   "nb": {
     "whereTo": "Hvor hen",
@@ -396,7 +450,10 @@
     "myPosition": "Min posisjon",
     "close": "Lukk",
     "searchTrip": "Finn en reise",
-    "licenseLine": "Rive, Apache-lisens 2.0."
+    "licenseLine": "Rive, Apache-lisens 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "Her i nærheten",
+    "noNearby": "Ingen avganger i nærheten."
   },
   "fi": {
     "whereTo": "Minne",
@@ -417,7 +474,10 @@
     "myPosition": "Sijaintini",
     "close": "Sulje",
     "searchTrip": "Etsi reitti",
-    "licenseLine": "Rive, Apache-lisenssi 2.0."
+    "licenseLine": "Rive, Apache-lisenssi 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "Lähellä",
+    "noNearby": "Ei lähtöjä lähellä."
   },
   "pl": {
     "whereTo": "Dokąd",
@@ -438,7 +498,10 @@
     "myPosition": "Moja pozycja",
     "close": "Zamknij",
     "searchTrip": "Znajdź połączenie",
-    "licenseLine": "Rive, licencja Apache 2.0."
+    "licenseLine": "Rive, licencja Apache 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "W pobliżu",
+    "noNearby": "Brak odjazdów w pobliżu."
   },
   "ru": {
     "whereTo": "Куда",
@@ -459,7 +522,10 @@
     "myPosition": "Моё место",
     "close": "Закрыть",
     "searchTrip": "Найти маршрут",
-    "licenseLine": "Rive, лицензия Apache 2.0."
+    "licenseLine": "Rive, лицензия Apache 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "Рядом",
+    "noNearby": "Рядом нет рейсов."
   },
   "uk": {
     "whereTo": "Куди",
@@ -480,7 +546,10 @@
     "myPosition": "Моє місце",
     "close": "Закрити",
     "searchTrip": "Знайти маршрут",
-    "licenseLine": "Rive, ліцензія Apache 2.0."
+    "licenseLine": "Rive, ліцензія Apache 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "Поруч",
+    "noNearby": "Поруч немає рейсів."
   },
   "tr": {
     "whereTo": "Nereye",
@@ -501,7 +570,10 @@
     "myPosition": "Konumum",
     "close": "Kapat",
     "searchTrip": "Yol ara",
-    "licenseLine": "Rive, Apache Lisansı 2.0."
+    "licenseLine": "Rive, Apache Lisansı 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "Yakında",
+    "noNearby": "Yakında kalkış yok."
   },
   "vi": {
     "whereTo": "Đi đâu",
@@ -522,7 +594,10 @@
     "myPosition": "Vị trí của tôi",
     "close": "Đóng",
     "searchTrip": "Tìm đường",
-    "licenseLine": "Rive, giấy phép Apache 2.0."
+    "licenseLine": "Rive, giấy phép Apache 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "Gần đây",
+    "noNearby": "Không có chuyến gần đây."
   },
   "th": {
     "whereTo": "ไปไหน",
@@ -543,7 +618,10 @@
     "myPosition": "ตำแหน่งของฉัน",
     "close": "ปิด",
     "searchTrip": "ค้นหาเส้นทาง",
-    "licenseLine": "Rive สัญญาอนุญาต Apache 2.0"
+    "licenseLine": "Rive สัญญาอนุญาต Apache 2.0",
+    "aller": "Aller",
+    "nearbyNow": "ใกล้ที่นี่",
+    "noNearby": "ไม่มีรอบใกล้ที่นี่"
   },
   "hi": {
     "whereTo": "कहाँ",
@@ -564,7 +642,10 @@
     "myPosition": "मेरी जगह",
     "close": "बंद करें",
     "searchTrip": "रास्ता खोजें",
-    "licenseLine": "Rive, Apache लाइसेंस 2.0।"
+    "licenseLine": "Rive, Apache लाइसेंस 2.0।",
+    "aller": "Aller",
+    "nearbyNow": "यहाँ पास",
+    "noNearby": "पास कोई प्रस्थान नहीं।"
   },
   "he": {
     "whereTo": "לאן",
@@ -585,7 +666,10 @@
     "myPosition": "המיקום שלי",
     "close": "סגור",
     "searchTrip": "חפש מסלול",
-    "licenseLine": "Rive, רישיון אפאצ'י 2.0."
+    "licenseLine": "Rive, רישיון אפאצ'י 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "קרוב לכאן",
+    "noNearby": "אין יציאות בקרבת מקום."
   },
   "ca": {
     "whereTo": "On vas",
@@ -606,7 +690,10 @@
     "myPosition": "La meva posició",
     "close": "Tanca",
     "searchTrip": "Cerca un trajecte",
-    "licenseLine": "Rive, llicència Apache 2.0."
+    "licenseLine": "Rive, llicència Apache 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "A prop",
+    "noNearby": "No hi ha sortides a prop."
   },
   "cs": {
     "whereTo": "Kam",
@@ -627,7 +714,10 @@
     "myPosition": "Moje poloha",
     "close": "Zavřít",
     "searchTrip": "Najít spojení",
-    "licenseLine": "Rive, licence Apache 2.0."
+    "licenseLine": "Rive, licence Apache 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "Poblíž",
+    "noNearby": "Žádné odjezdy poblíž."
   },
   "sk": {
     "whereTo": "Kam",
@@ -648,7 +738,10 @@
     "myPosition": "Moja poloha",
     "close": "Zavrieť",
     "searchTrip": "Nájsť spojenie",
-    "licenseLine": "Rive, licencia Apache 2.0."
+    "licenseLine": "Rive, licencia Apache 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "Neďaleko",
+    "noNearby": "Žiadne odchody neďaleko."
   },
   "hu": {
     "whereTo": "Hová",
@@ -669,7 +762,10 @@
     "myPosition": "Saját helyem",
     "close": "Bezárás",
     "searchTrip": "Útvonal keresése",
-    "licenseLine": "Rive, Apache 2.0 licenc."
+    "licenseLine": "Rive, Apache 2.0 licenc.",
+    "aller": "Aller",
+    "nearbyNow": "A közelben",
+    "noNearby": "Nincs indulás a közelben."
   },
   "ro": {
     "whereTo": "Încotro",
@@ -690,7 +786,10 @@
     "myPosition": "Poziția mea",
     "close": "Închide",
     "searchTrip": "Caută un traseu",
-    "licenseLine": "Rive, licență Apache 2.0."
+    "licenseLine": "Rive, licență Apache 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "Aproape",
+    "noNearby": "Nicio plecare aproape."
   },
   "el": {
     "whereTo": "Πού",
@@ -711,7 +810,10 @@
     "myPosition": "Η θέση μου",
     "close": "Κλείσιμο",
     "searchTrip": "Βρες διαδρομή",
-    "licenseLine": "Rive, άδεια Apache 2.0."
+    "licenseLine": "Rive, άδεια Apache 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "Κοντά",
+    "noNearby": "Δεν υπάρχουν αναχωρήσεις κοντά."
   },
   "id": {
     "whereTo": "Ke mana",
@@ -732,7 +834,10 @@
     "myPosition": "Lokasi saya",
     "close": "Tutup",
     "searchTrip": "Cari rute",
-    "licenseLine": "Rive, Lisensi Apache 2.0."
+    "licenseLine": "Rive, Lisensi Apache 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "Di dekat sini",
+    "noNearby": "Tidak ada keberangkatan di dekat sini."
   },
   "ms": {
     "whereTo": "Ke mana",
@@ -753,7 +858,10 @@
     "myPosition": "Lokasi saya",
     "close": "Tutup",
     "searchTrip": "Cari laluan",
-    "licenseLine": "Rive, Lesen Apache 2.0."
+    "licenseLine": "Rive, Lesen Apache 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "Berhampiran",
+    "noNearby": "Tiada berlepas berhampiran."
   },
   "hr": {
     "whereTo": "Kamo",
@@ -774,7 +882,10 @@
     "myPosition": "Moja lokacija",
     "close": "Zatvori",
     "searchTrip": "Pronađi rutu",
-    "licenseLine": "Rive, licenca Apache 2.0."
+    "licenseLine": "Rive, licenca Apache 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "U blizini",
+    "noNearby": "Nema polazaka u blizini."
   },
   "bg": {
     "whereTo": "Накъде",
@@ -795,6 +906,9 @@
     "myPosition": "Моето място",
     "close": "Затвори",
     "searchTrip": "Намери маршрут",
-    "licenseLine": "Rive, лиценз Apache 2.0."
+    "licenseLine": "Rive, лиценз Apache 2.0.",
+    "aller": "Aller",
+    "nearbyNow": "Наблизо",
+    "noNearby": "Няма тръгвания наблизо."
   }
 }

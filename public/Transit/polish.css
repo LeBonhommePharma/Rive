@@ -1,6 +1,6 @@
 /* Shared Rive character, with the atlas' day/night and map controls intact. */
 :root, html.day, html.night { --r-lg: 22px; --r-md: 12px; }
-.atlas-brand { position: absolute; top: var(--safe-top); left: var(--safe-left); height: 52px; display: flex; align-items: center; gap: 6px; padding: 0 8px 0 6px; border: 1px solid var(--hair); border-radius: 17px; background: var(--glass); color: var(--ink); text-decoration: none; font-size: 30px; font-weight: 700; letter-spacing: -1.3px; }
+.atlas-brand { position: absolute; top: var(--safe-top); left: var(--safe-left); height: 52px; display: flex; align-items: center; gap: 6px; padding: 0 8px 0 6px; border: 1px solid var(--hair); border-radius: 17px; background: var(--glass); color: var(--ink); text-decoration: none; font-size: 30px; font-weight: 700; letter-spacing: -1.3px; z-index: var(--z-rail); }
 .atlas-brand span { background: var(--brand-ink); color: var(--brand-mint); width: 38px; height: 38px; border-radius: 13px; display: grid; place-items: center; font-size: 24px; }
 .cities { left: calc(var(--safe-left) + 128px); border-radius: 16px; }
 .cities button { font-family: var(--font-ui); font-size: 14px; letter-spacing: 0; }
@@ -63,3 +63,21 @@ footer { font-family: var(--font-ui); letter-spacing: 0; }
 #geo-ask::after { color: inherit; }
 #geo-map-cancel { position: absolute; left: calc(var(--safe-left) + var(--col) + 8px); top: calc(var(--safe-top) + var(--chips-h) + 66px); z-index: var(--z-ask); border: 1px solid var(--hair); border-radius: 10px; color: var(--ink); background: var(--glass); font: 500 13px var(--font-ui); min-height: 44px; padding: 10px 14px; cursor: pointer; }
 @media (max-width: 640px) { #geo-map-cancel { left: var(--safe-left); top: calc(var(--safe-top) + 118px); } }
+#load-city, #atlas-gap {
+  font: 600 14px var(--font-ui);
+  letter-spacing: 0;
+  border-radius: 10px;
+}
+#load-city {
+  color: var(--brand-ink);
+  background: var(--brand-mint);
+  border-color: var(--brand-mint);
+}
+#load-city::after { color: inherit; }
+@media (max-width: 640px) {
+  #load-city, #atlas-gap { top: calc(var(--safe-top) + 62px); }
+  #geo-ask:not([hidden]) ~ #load-city,
+  #geo-ask:not([hidden]) ~ #atlas-gap { top: calc(var(--safe-top) + 118px); }
+  #geo-map-cancel:not([hidden]) ~ #load-city,
+  #geo-map-cancel:not([hidden]) ~ #atlas-gap { top: calc(var(--safe-top) + 174px); }
+}

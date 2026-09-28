@@ -21,6 +21,9 @@ const MapView = dynamic(
   () => import("@/components/map-view").then((mod) => mod.MapView),
   { ssr: false },
 );
+import { ItinerarySteps } from "@/components/itinerary-steps";
+import { LineChip } from "@/components/line-chip";
+import type { MapCamera } from "@/components/map-view";
 import type {
   Atlas,
   AtlasRoute,
@@ -32,11 +35,27 @@ import type {
 import type { Poi } from "@/lib/poi";
 import { understandQuery, type CityHint } from "@/lib/assist";
 import { t, type MessageId } from "@/lib/i18n";
-import { chipsForCities, cityForPoint, placeFromStop, searchAtlas, type CityVisit } from "@/lib/search";
+import { itineraryHasTransfer } from "@/lib/itinerary-display";
+import { linesAtStop, type LineDue, type NearbyLine } from "@/lib/lines";
+import {
+  chipsForCities,
+  cityForPoint,
+  firstStopFromQuery,
+  placeFromStop,
+  searchAtlas,
+  supportedCityCenters,
+  type CityVisit,
+} from "@/lib/search";
 import { resolveSearchAction } from "@/lib/search-submit";
 import { formatClock, formatRelative } from "@/lib/time";
 import { fetchJson, readJsonResponse } from "@/lib/client-http";
 import { accuracyLabel, LocationRequestError, requestLocation, type LocationFailure, type LocationFix } from "@/lib/location";
+import {
+  hintAtViewport,
+  packedCityName,
+  type CityCenterTable,
+  type ViewportCityHint,
+} from "@/lib/viewport-city";
 
 type Field = "from" | "to";
 type Departure = {
@@ -51,6 +70,37 @@ type Departure = {
   wait: number;
   times?: number[];
 };
+
+type NearbyPayload = {
+  city: CityId;
+  stop: (AtlasStop & { meters: number }) | null;
+  lines: NearbyLine[];
+  due: LineDue[];
+};
+
+type CitiesPayload = {
+  shipped: string[];
+  registry: Array<{ id: string; name: string }>;
+  visits: CityVisit[];
+  centers: CityCenterTable;
+  atlasGap: string;
+};
+
+function isNearbyPayload(data: unknown): data is NearbyPayload {
+  const value = data as Partial<NearbyPayload> | null;
+  return Boolean(value && typeof value.city === "string" && Array.isArray(value.lines) && Array.isArray(value.due));
+}
+
+function isCitiesPayload(data: unknown): data is CitiesPayload {
+  const value = data as Partial<CitiesPayload> | null;
+  return Boolean(
+    value &&
+      Array.isArray(value.shipped) &&
+      Array.isArray(value.registry) &&
+      value.centers &&
+      typeof value.centers === "object",
+  );
+}
 
 const LOCATION_ERRORS: Record<LocationFailure, string> = {
   denied: "L’accès à ta position est bloqué dans le navigateur ou les réglages de l’appareil.",
@@ -74,6 +124,42 @@ function modeIcon(type: number, className: string) {
 
 function stopDetail(stop: AtlasStop): string {
   return [stop.agencyId, stop.code ? `Arrêt ${stop.code}` : ""].filter(Boolean).join(" · ");
+}
+
+function cityNamesFrom(cities: Array<{ id: string; label: string }>, registry: Array<{ id: string; name: string }>) {
+  const names: Record<string, string> = {};
+  for (const item of cities) names[item.id] = item.label;
+  for (const item of registry) names[item.id] = item.name;
+  return names;
+}
+
+function ViewportHintCard({ hint, onLoad }: { hint: ViewportCityHint; onLoad: () => void }) {
+  switch (hint.kind) {
+    case "current":
+      return null;
+    case "offer":
+      return (
+        <div className="glass rive-city-hint rounded-[12px] p-4" role="status">
+          <p className="text-sm text-ink">
+            {packedCityName(hint.city)} est dans l&apos;atlas. Gratuit, sans abonnement.
+          </p>
+          <button type="button" className="rive-load-city" onClick={onLoad}>
+            {hint.label}
+          </button>
+        </div>
+      );
+    case "ingest":
+    case "outside":
+      return (
+        <div className="glass rive-city-hint rounded-[12px] p-4" role="status">
+          <p className="text-sm text-ink">{hint.text}</p>
+        </div>
+      );
+    default: {
+      const _never: never = hint;
+      return _never;
+    }
+  }
 }
 
 export function RiveApp() {
@@ -109,6 +195,8 @@ export function RiveApp() {
   const [pickingLocation, setPickingLocation] = useState(false);
   const [manualDeparture, setManualDeparture] = useState<Place | null>(null);
   const [departureError, setDepartureError] = useState("");
+  const [nearby, setNearby] = useState<NearbyPayload | null>(null);
+  const [viewportHint, setViewportHint] = useState<ViewportCityHint | null>(null);
   const locationRun = useRef(0);
   const locationRequest = useRef<AbortController | null>(null);
   const fromInput = useRef<HTMLInputElement>(null);
@@ -120,8 +208,20 @@ export function RiveApp() {
   const panelToggle = useRef<HTMLButtonElement>(null);
   const departuresRun = useRef<AbortController | null>(null);
   const planRun = useRef(0);
+  const pendingLookup = useRef<string | null>(null);
+  const cameraTimer = useRef(0);
+  const cityRef = useRef(city);
+  const coverageRef = useRef<CitiesPayload | null>(null);
 
-  useEffect(() => () => { ++locationRun.current; locationRequest.current?.abort(); }, []);
+  useEffect(() => () => {
+    ++locationRun.current;
+    locationRequest.current?.abort();
+    if (cameraTimer.current) window.clearTimeout(cameraTimer.current);
+  }, []);
+
+  useEffect(() => {
+    cityRef.current = city;
+  }, [city]);
 
   useEffect(() => {
     const desktop = window.matchMedia("(min-width: 641px)");
@@ -156,6 +256,11 @@ export function RiveApp() {
         if (loaded.length) setCities(loaded);
       })
       .catch(() => {});
+    fetchJson<CitiesPayload>("/api/cities")
+      .then((data) => {
+        if (isCitiesPayload(data)) coverageRef.current = data;
+      })
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -177,6 +282,7 @@ export function RiveApp() {
       if (alive) {
         setAtlas(data);
         setPois(places);
+        setLoadError("");
       }
     }
     load().catch((err: Error) => {
@@ -216,6 +322,40 @@ export function RiveApp() {
     const featured = routes.filter((route) => route.type === 1 || /^80[0-7]$/.test(route.shortName));
     return (featured.length ? featured : routes).slice(0, 6);
   }, [atlas]);
+  const stopLines = useMemo(
+    () => (atlas && selectedStop ? linesAtStop(atlas, selectedStop) : []),
+    [atlas, selectedStop],
+  );
+
+  // The nearby board follows the chosen departure, else the visit or network center.
+  const nearbyOrigin = from ?? (visit ? { lon: visit.lon, lat: visit.lat } : atlas
+    ? { lon: atlas.meta.center[0], lat: atlas.meta.center[1] }
+    : null);
+  const nearbyLon = nearbyOrigin?.lon;
+  const nearbyLat = nearbyOrigin?.lat;
+  const nearbyDestLon = to?.lon;
+  const nearbyDestLat = to?.lat;
+
+  useEffect(() => {
+    if (!atlas || typeof nearbyLon !== "number" || typeof nearbyLat !== "number") return;
+    let alive = true;
+    const destQs = typeof nearbyDestLon === "number" && typeof nearbyDestLat === "number"
+      ? `&destLon=${nearbyDestLon}&destLat=${nearbyDestLat}`
+      : "";
+    fetchJson<NearbyPayload>(
+      `/api/nearby?city=${encodeURIComponent(city)}&lon=${nearbyLon}&lat=${nearbyLat}${destQs}`,
+    )
+      .then((data) => {
+        if (alive) setNearby(isNearbyPayload(data) ? data : null);
+      })
+      .catch(() => {
+        if (alive) setNearby(null);
+      });
+    return () => {
+      alive = false;
+    };
+  }, [atlas, city, nearbyLon, nearbyLat, nearbyDestLon, nearbyDestLat]);
+
 
   function pickStopAs(field: Field, stop: AtlasStop) {
     setSearchOpen(false);
@@ -319,6 +459,20 @@ export function RiveApp() {
     }
   }
 
+  function lookupRemoteStop(query: string, pack: Atlas) {
+    // Prefer an official stop over the first fuzzy hit for a remote timetable.
+    const stop = firstStopFromQuery(pack, query);
+    if (stop) {
+      void openStop(stop);
+      return;
+    }
+    const hit = searchAtlas(pack, query, 1, undefined, { pois })[0];
+    if (hit?.kind === "stop") void openStop(hit.stop);
+    else if (hit?.kind === "poi") pickPoiAs(activeField, hit.poi);
+    else if (hit?.kind === "route") selectRoute(hit.route.id);
+    else setPlanError("Aucun résultat. Essaie un nom d’arrêt, une adresse connue ou un numéro de ligne.");
+  }
+
   async function onSearch(event: FormEvent) {
     event.preventDefault();
     const raw = typed.trim();
@@ -327,18 +481,74 @@ export function RiveApp() {
       void plan();
       return;
     }
-    if (action === "schedule" && atlas && raw) {
-       const intent = await understandQuery(raw, cities as CityHint[]);
-      if (intent.city && intent.city !== city) {
-         setPlanError("Choisis d’abord cette ville dans la barre du haut, puis relance la recherche.");
-         return;
-       }
-       const hit = searchAtlas(atlas, intent.query, 1, undefined, { pois })[0];
-       if (hit?.kind === "stop") void openStop(hit.stop);
-       else if (hit?.kind === "poi") pickPoiAs(activeField, hit.poi);
-       else if (hit?.kind === "route") selectRoute(hit.route.id);
-       else setPlanError("Aucun résultat. Essaie un nom d’arrêt, une adresse connue ou un numéro de ligne.");
+    if (action === "schedule" && raw) {
+      const intent = await understandQuery(raw, cities as CityHint[]);
+      if (intent.city && intent.city !== city && cities.some((entry) => entry.id === intent.city)) {
+        // First-class city switch: load that network, then look the stop up there.
+        pendingLookup.current = intent.query;
+        pickCity(intent.city, null);
+        return;
+      }
+      if (atlas) lookupRemoteStop(intent.query, atlas);
     }
+  }
+
+  function resetBoard() {
+    setItineraries([]);
+    setChosen(null);
+    setSelectedStop(null);
+    setSelectedRouteId(null);
+    setFrom(null);
+    setTo(null);
+    setFromQuery("");
+    setToQuery("");
+    setDepartures([]);
+    setPlanError("");
+    setNearby(null);
+    setViewportHint(null);
+  }
+
+  function pickCity(next: CityId, nextVisit: CityVisit | null) {
+    ++planRun.current;
+    cancelLocation();
+    departuresRun.current?.abort();
+    setPlanning(false);
+    setDeparturesBusy(false);
+    setMapFocus(null);
+    setManualDeparture(null);
+    setPickingLocation(false);
+    setSearchOpen(false);
+    setDepartureError("");
+    // Only a real network change reloads; a visit inside the same pack keeps its atlas.
+    if (next !== city) setAtlas(null);
+    setCity(next);
+    setVisit(nextVisit);
+    setLoadError("");
+    resetBoard();
+  }
+
+  function onCamera(cam: MapCamera) {
+    if (!cam.user || pickingLocation) return;
+    window.clearTimeout(cameraTimer.current);
+    cameraTimer.current = window.setTimeout(() => {
+      // Before /api/cities answers, fall back to the shipped city centers.
+      const pack = coverageRef.current;
+      const centers = pack?.centers ?? supportedCityCenters();
+      const hint = hintAtViewport(
+        cam.lon,
+        cam.lat,
+        cityRef.current,
+        centers,
+        cityNamesFrom(cities, pack?.registry ?? []),
+        pack?.shipped ?? Object.keys(centers),
+      );
+      setViewportHint(hint.kind === "current" ? null : hint);
+    }, 280);
+  }
+
+  function loadOfferedCity() {
+    if (viewportHint?.kind !== "offer" || !viewportHint.city) return;
+    pickCity(viewportHint.city, null);
   }
 
   function cancelLocation() {
@@ -558,6 +768,19 @@ export function RiveApp() {
     }
   }
 
+  useEffect(() => {
+    // A search that named another city switched packs first; finish its lookup once loaded.
+    const pending = pendingLookup.current;
+    if (!atlas || !pending) return;
+    pendingLookup.current = null;
+    lookupRemoteStop(pending, atlas);
+    // Runs once per loaded atlas pack.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [atlas]);
+
+  const idle = !selectedStop && !selectedRoute && !planning && !itineraries.length && !planError;
+  const nearbyHere = nearby && nearby.city === city ? nearby : null;
+
   return (
     <main className={`rive-app relative h-[100dvh] overflow-hidden bg-paper text-ink ${pickingLocation ? "is-picking-location" : ""}`} onKeyDown={(event) => {
       if (event.key === "Escape" && pickingLocation) cancelMapPick();
@@ -583,6 +806,7 @@ export function RiveApp() {
         itinerary={activeItinerary}
         onStop={(stop) => void openStop(stop)}
         onRoute={selectRoute}
+        onCamera={onCamera}
       />
 
       <div className="pointer-events-none absolute inset-0 z-[2]">
@@ -598,32 +822,7 @@ export function RiveApp() {
                   type="button"
                   onClick={() => {
                     if (on) return;
-                    ++planRun.current;
-                    cancelLocation();
-                    departuresRun.current?.abort();
-                    setPlanning(false);
-                    setLocationBusy(false);
-                    setLocationError(null);
-                    setLocationMessage("");
-                    setMapFocus(null);
-                    setManualDeparture(null);
-                    setPickingLocation(false);
-                    setSearchOpen(false);
-                    setDepartureError("");
-                    if (item.city !== city) setAtlas(null);
-                    setCity(item.city);
-                    setVisit(item.visit || null);
-                    setLoadError("");
-                    setItineraries([]);
-                    setChosen(null);
-                    setSelectedStop(null);
-                    setSelectedRouteId(null);
-                    setFrom(null);
-                    setTo(null);
-                    setFromQuery("");
-                    setToQuery("");
-                    setDepartures([]);
-                    setPlanError("");
+                    pickCity(item.city, item.visit || null);
                   }}
                   className={`shrink-0 cursor-pointer rounded-[10px] px-3 py-2 text-[13px] font-semibold tracking-tight min-h-11 transition-colors duration-200 ease-[cubic-bezier(0.16,1,0.3,1)] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-sodium ${
                     on
@@ -674,6 +873,7 @@ export function RiveApp() {
               <button type="button" className="location-dismiss" onClick={() => { setLocationMessage(""); setLocationError(null); }}>Fermer</button>
             </div>}
           </div>}
+          {viewportHint ? <ViewportHintCard hint={viewportHint} onLoad={loadOfferedCity} /> : null}
         </section>}
 
         <aside className={`journey-panel glass ${collapsed ? "is-collapsed" : ""}`} aria-label="Rechercher et préparer un trajet">
@@ -759,6 +959,11 @@ export function RiveApp() {
               <span><Clock size={15} /> Horaires du jour</span>
               <button type="button" onClick={swapPlaces} disabled={!fromQuery && !toQuery}><ArrowsDownUp size={16} /> Inverser</button>
             </div>
+            {from && to && (
+              <button type="submit" className="rive-aller mt-3" disabled={planning || !atlas}>
+                {tr("aller")} <ArrowRight size={18} />
+              </button>
+            )}
             {searchOpen && typed.trim() && deferredQuery === typed && hits.length === 0 && atlas && (
               <p className="feedback" role="status">Aucun résultat dans cette ville. Essaie un autre arrêt ou une ligne.</p>
             )}
@@ -845,7 +1050,48 @@ export function RiveApp() {
         </form>
 
         <div className="journey-results" aria-live="polite" aria-busy={planning || departuresBusy}>
-          {!selectedStop && !selectedRoute && !planning && !itineraries.length && !planError && (
+          {idle && nearbyHere && (
+            <section className="detail-section nearby-section p-5" aria-label={tr("nearbyNow")}>
+              <div className="section-heading">
+                <h2>{tr("nearbyNow")}</h2>
+                <span>{nearbyHere.stop?.name || cities.find((item) => item.id === city)?.label || city}</span>
+              </div>
+              {nearbyHere.lines.length === 0 ? (
+                <p className="mt-3 text-sm text-muted">{tr("noNearby")}</p>
+              ) : (
+                <div className="rive-chip-row">
+                  {nearbyHere.lines.map((line) => (
+                    <LineChip
+                      key={line.routeId}
+                      shortName={line.shortName}
+                      color={line.color}
+                      textColor={line.textColor}
+                      title={line.longName || line.shortName}
+                      onClick={() => selectRoute(line.routeId)}
+                    />
+                  ))}
+                </div>
+              )}
+              <ul className="mt-4 space-y-3">
+                {nearbyHere.due.slice(0, 8).map((row) => (
+                  <li key={`${row.routeId}-${row.headsign}-${row.stopId}`} className="flex items-center gap-3">
+                    <LineChip shortName={row.shortName} color={row.color} textColor={row.textColor} />
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate text-sm">{row.headsign}</p>
+                      <p className="font-mono text-[11px] text-muted">
+                        {row.clocks.slice(0, 4).join("  ")}
+                        {row.stopName ? `  ${row.stopName}` : ""}
+                      </p>
+                    </div>
+                    <span className="departure-countdown">
+                      {row.wait > 90 ? formatClock(row.depart) : formatRelative(row.wait)}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          )}
+          {idle && (
             <section className="explore-section">
               <div className="section-heading"><h2>Explore le réseau</h2><span>{visit?.label || cities.find((item) => item.id === city)?.label}</span></div>
               <p>Choisis une ligne pour voir son parcours sur la carte.</p>
@@ -884,6 +1130,20 @@ export function RiveApp() {
                     <X size={14} />
                   </button>
                 </div>
+                {stopLines.length > 0 ? (
+                  <div className="rive-chip-row">
+                    {stopLines.map((line) => (
+                      <LineChip
+                        key={line.routeId}
+                        shortName={line.shortName}
+                        color={line.color}
+                        textColor={line.textColor}
+                        title={line.longName || line.shortName}
+                        onClick={() => selectRoute(line.routeId)}
+                      />
+                    ))}
+                  </div>
+                ) : null}
                 <ul className="mt-4 space-y-3">
                   {departuresBusy && <li className="text-sm text-muted">Lecture des horaires…</li>}
                   {departureError && <li className="feedback">{departureError}<button type="button" className="retry-button" onClick={() => void openStop(selectedStop)}>Réessayer</button></li>}
@@ -892,12 +1152,7 @@ export function RiveApp() {
                   )}
                   {departures.map((row) => (
                     <li key={`${row.routeId}-${row.headsign}`} className="flex items-center gap-3">
-                      <span
-                        className="inline-flex min-w-12 items-center justify-center rounded-full px-2 py-1 text-xs font-semibold"
-                        style={{ background: row.color, color: row.textColor }}
-                      >
-                        {row.shortName}
-                      </span>
+                      <LineChip shortName={row.shortName} color={row.color} textColor={row.textColor} />
                       <div className="min-w-0 flex-1">
                         <p className="truncate text-sm">{row.headsign}</p>
                         <p className="font-mono text-[11px] text-muted">
@@ -951,7 +1206,7 @@ export function RiveApp() {
                           {item.minutes} min
                         </p>
                         <p className="text-xs text-muted">
-                          {item.transfers === 0
+                          {item.transfers === 0 || !itineraryHasTransfer(item)
                             ? tr("direct")
                             : `${item.transfers} ${tr("transfer")}`}
                         </p>
@@ -974,12 +1229,7 @@ export function RiveApp() {
                           ) : (
                             <span key={i} className="inline-flex items-center gap-2">
                               {i > 0 && <ArrowRight size={12} className="text-muted" />}
-                              <span
-                                className="rounded-full px-2 py-0.5 text-xs font-semibold"
-                                style={{ background: leg.color, color: leg.textColor }}
-                              >
-                                {leg.shortName}
-                              </span>
+                              <LineChip shortName={leg.shortName} color={leg.color} textColor={leg.textColor} />
                               <span className="text-ink/75">
                                 {leg.headsign}
                                 {leg.agencyId ? ` · ${leg.agencyId}` : ""}
@@ -997,6 +1247,7 @@ export function RiveApp() {
                     </button>
                   );
                 })}
+                {activeItinerary ? <ItinerarySteps itinerary={activeItinerary} /> : null}
               </motion.section>
             )}
           </AnimatePresence>

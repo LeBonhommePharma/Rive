@@ -23,11 +23,15 @@ function routeById(atlas: Atlas): Map<string, AtlasRoute> {
   return new Map(atlas.routes.map((r) => [r.id, r]));
 }
 
-function lookupIds(stop: AtlasStop): string[] {
+export function lookupStopIds(stop: AtlasStop): string[] {
   const ids = [stop.id];
   if (stop.children) ids.push(...stop.children);
   if (stop.parent) ids.push(stop.parent);
   return ids;
+}
+
+function lookupIds(stop: AtlasStop): string[] {
+  return lookupStopIds(stop);
 }
 
 function indexOnDir(dirStops: string[], stop: AtlasStop): number {
@@ -103,7 +107,7 @@ export function departuresAtStop(
   stop: AtlasStop,
   now: number,
   active: Set<number>,
-  limit = 12,
+  limit = 32,
 ) {
   const routes = routeById(atlas);
   const rows: Array<{
@@ -141,7 +145,7 @@ export function departuresAtStop(
     });
   }
 
-  rows.sort((a, b) => a.depart - b.depart || a.shortName.localeCompare(b.shortName));
+  rows.sort((a, b) => a.depart - b.depart || a.shortName.localeCompare(b.shortName, "fr"));
   const seen = new Set<string>();
   const unique = [];
   for (const row of rows) {
@@ -149,9 +153,9 @@ export function departuresAtStop(
     if (seen.has(key)) continue;
     seen.add(key);
     unique.push(row);
-    if (unique.length >= limit) break;
   }
-  return unique;
+  const cap = Math.min(48, Math.max(1, Math.floor(Number.isFinite(limit) ? limit : 32)));
+  return unique.slice(0, cap);
 }
 
 export function planTrip(

@@ -11,6 +11,9 @@ import * as searchSubmit from "./search-submit";
 import * as time from "./time";
 import * as location from "./location";
 import { readJsonResponse } from "./client-http";
+import * as itineraryDisplay from "./itinerary-display";
+import * as lines from "./lines";
+import * as viewportCity from "./viewport-city";
 import type { AtlasRoute, AtlasStop } from "./atlas/types";
 
 type Props = Record<string, unknown>;
@@ -111,6 +114,8 @@ function harness(initialWidth = 1200, routes: AtlasRoute[] = [], stops: AtlasSto
     "motion/react": { AnimatePresence: "animate-presence", motion: { section: "section" }, useReducedMotion: () => true },
     "@phosphor-icons/react": Object.fromEntries("ArrowRight ArrowsDownUp CaretDown MapTrifold Clock Bus Crosshair MagnifyingGlass MapPin PersonSimpleWalk Subway X".split(" ").map((name) => [name, `icon-${name}`])),
     "@/lib/assist": assist, "@/lib/i18n": i18n, "@/lib/search": search,
+    "@/components/itinerary-steps": { ItinerarySteps: "ItinerarySteps" }, "@/components/line-chip": { LineChip: "LineChip" },
+    "@/lib/itinerary-display": itineraryDisplay, "@/lib/lines": lines, "@/lib/viewport-city": viewportCity,
     "@/lib/search-submit": searchSubmit, "@/lib/time": time, "@/lib/client-http": { fetchJson, readJsonResponse },
     "@/lib/location": { ...location, requestLocation(provider: Geolocation, options: { signal: AbortSignal; onRetry: () => void }) {
       signals.push(options.signal); return location.requestLocation(provider, options);

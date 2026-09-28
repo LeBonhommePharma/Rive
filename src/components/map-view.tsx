@@ -18,6 +18,13 @@ import {
 
 const STYLE = "https://tiles.openfreemap.org/styles/positron";
 
+export type MapCamera = {
+  lon: number;
+  lat: number;
+  zoom: number;
+  user: boolean;
+};
+
 type Props = {
   city: CityId;
   atlas: Atlas | null;
@@ -32,6 +39,7 @@ type Props = {
   itinerary?: Itinerary | null;
   onStop: (stop: AtlasStop) => void;
   onRoute: (routeId: string) => void;
+  onCamera?: (camera: MapCamera) => void;
 };
 
 type LineProps = {
@@ -109,6 +117,7 @@ export function MapView({
   itinerary,
   onStop,
   onRoute,
+  onCamera,
 }: Props) {
   const [mapDelayed, setMapDelayed] = useState(false);
   const [mapReady, setMapReady] = useState(false);
@@ -120,13 +129,15 @@ export function MapView({
   const onRouteRef = useRef(onRoute);
   const pickingRef = useRef(pickingLocation);
   const cameraTarget = useRef<unknown>(null);
+  const onCameraRef = useRef(onCamera);
 
   useEffect(() => {
     atlasRef.current = atlas;
     onStopRef.current = onStop;
     onRouteRef.current = onRoute;
     pickingRef.current = pickingLocation;
-  }, [atlas, onStop, onRoute, pickingLocation]);
+    onCameraRef.current = onCamera;
+  }, [atlas, onStop, onRoute, pickingLocation, onCamera]);
 
   useEffect(() => {
     if (!rootRef.current || mapRef.current) return;
@@ -316,6 +327,15 @@ export function MapView({
         }
       };
       map.on("click", pick);
+      map.on("moveend", (event: maplibregl.MapLibreEvent) => {
+        const center = map.getCenter();
+        onCameraRef.current?.({
+          lon: center.lng,
+          lat: center.lat,
+          zoom: map.getZoom(),
+          user: Boolean((event as { originalEvent?: unknown }).originalEvent),
+        });
+      });
       for (const layer of ["rive-stop-dots", "rive-stations", "rive-metro", "rive-frequent"]) {
         map.on("mouseenter", layer, () => {
           map.getCanvas().style.cursor = "pointer";
