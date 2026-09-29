@@ -23,7 +23,7 @@ struct AboutView: View {
       Section("Aide et logiciel libre") {
         Link("Signaler un problème", destination: URL(string: "https://github.com/LeBonhommePharma/Transit/issues")!)
         Link("Code source et licence Apache 2.0", destination: URL(string: "https://github.com/LeBonhommePharma/Transit")!)
-        Link("Rive sur le web", destination: URL(string: "https://thebonhomme.com/rive/")!)
+        Link("Rive sur le web", destination: URL(string: "https://thebonhomme.com/transit/")!)
       }
       if let loaded = store.loaded {
         let meta = loaded.schedule.dataset.atlas.meta

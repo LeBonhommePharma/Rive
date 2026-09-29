@@ -17,8 +17,10 @@ public actor TransitRepository {
   private let baseURL: URL
   private let session: URLSession
 
+  /// `baseURL` is the published copy of `public/data/`. `scripts/publish-transit.mjs` composes it
+  /// under `/transit/data/` on thebonhomme.com (see DEPLOY.md); nothing publishes a `/rive/` route.
   public init(bundledDirectory: URL, cacheDirectory: URL,
-              baseURL: URL = URL(string: "https://thebonhomme.com/rive/data/")!,
+              baseURL: URL = URL(string: "https://thebonhomme.com/transit/data/")!,
               session: URLSession = .shared) {
     self.bundledDirectory = bundledDirectory
     self.cacheDirectory = cacheDirectory

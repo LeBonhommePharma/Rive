@@ -50,11 +50,22 @@ The helper uses Apple's system command path during archive/export. This avoids a
 
 Override `RIVE_BUILD_DIR` to select another output directory. To archive without signing for CI or local compilation checks, set `RIVE_UNSIGNED=1` when invoking `archive`. An unsigned archive cannot be exported for App Store distribution.
 
+App Store Connect rejects a build number it has already received. `ExportOptions.plist` leaves version management manual (`manageAppVersionAndBuildNumber` is false), so either raise `CURRENT_PROJECT_VERSION` in `project.yml` and regenerate, or set `RIVE_BUILD_NUMBER` (and optionally `RIVE_MARKETING_VERSION`) when archiving:
+
+```sh
+RIVE_BUILD_NUMBER=2 scripts/ios-release archive
+scripts/ios-release export
+scripts/ios-release validate   # optional: altool validation with an App Store Connect API key
+scripts/ios-release upload     # optional: altool upload; Xcode Organizer or Transporter also work
+```
+
+`validate` and `upload` need `RIVE_ASC_KEY_ID` and `RIVE_ASC_ISSUER_ID` plus the matching `AuthKey_<KEY_ID>.p8` in `~/.appstoreconnect/private_keys/`, where `altool` looks for it. Keep the key out of the repository.
+
 ## Data and privacy
 
-The refresh button fetches the selected city's `atlas.json` and `timetable.json` from `https://thebonhomme.com/rive/data/`. It validates the pair and atomically saves one cached dataset. Failed refreshes preserve the previous usable data; cancelled or superseded city loads do not replace the selected city. No stop search, GPS coordinates or journey endpoints are included in these requests.
+The refresh button fetches the selected city's `atlas.json` and `timetable.json` from `https://thebonhomme.com/transit/data/`, the published copy of `public/data/` described in [`DEPLOY.md`](../DEPLOY.md). It validates the pair and atomically saves one cached dataset. Failed refreshes preserve the previous usable data; cancelled or superseded city loads do not replace the selected city. No stop search, GPS coordinates or journey endpoints are included in these requests.
 
-The in-app privacy screen describes local preferences, optional location, Apple MapKit, data hosting and deletion controls. `PrivacyInfo.xcprivacy` declares the app's use of UserDefaults for its own settings. MapKit and hosting practices still need to be considered when answering App Store Connect's App Privacy questionnaire; the manifest is not a substitute for those answers or a published privacy-policy URL.
+The in-app privacy screen describes local preferences, optional location, Apple MapKit, data hosting and deletion controls. `PrivacyInfo.xcprivacy` declares the app's use of UserDefaults for its own settings. MapKit and hosting practices still need to be considered when answering App Store Connect's App Privacy questionnaire; the manifest is not a substitute for those answers or a published privacy-policy URL. [`PRIVACY.md`](PRIVACY.md) is the privacy-policy text to publish, and [`APP_STORE.md`](APP_STORE.md) holds the App Store Connect metadata, privacy questionnaire answers, review notes and submission checklist. `node scripts/appstore-metadata.mjs` checks the metadata character limits.
 
 ## Before upload
 
