@@ -173,11 +173,14 @@ describe("pan-to-city viewport hints", () => {
     assert.match(react, /\/api\/cities/);
     assert.match(react, /chipsForCities/);
     assert.doesNotMatch(react, /\bGO\b/);
-    const board = readFileSync(join(process.cwd(), "ios", "RiveApp", "RiveNativeBoard.swift"), "utf8");
-    assert.match(board, /RiveCityChip/);
-    assert.match(board, /RiveAllerButton/);
-    assert.match(board, /laval/);
-    assert.match(board, /longueuil/);
+    // The native iOS app reads its cities from the bundled atlas; the shared
+    // SwiftUI chrome it and watchOS draw from must keep the city chip and Aller.
+    const chrome = readFileSync(
+      join(process.cwd(), "native", "RiveKit", "Sources", "RiveKit", "RiveChrome.swift"),
+      "utf8",
+    );
+    assert.match(chrome, /RiveCityChip/);
+    assert.match(chrome, /RiveAllerButton/);
   });
 });
 

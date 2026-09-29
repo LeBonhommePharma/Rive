@@ -1,0 +1,67 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+RIVE_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
+RIVE_OUTPUT="${RIVE_BUILD_DIR:-$RIVE_ROOT/build/ios}"
+RIVE_ACTION="${1:-archive}"
+RIVE_IPA="$RIVE_OUTPUT/AppStore/Rive.ipa"
+mkdir -p "$RIVE_OUTPUT"
+
+# Optional overrides so a re-upload does not need a project regeneration.
+# App Store Connect refuses a build number it has already received for a version.
+RIVE_VERSION_ARGS=()
+if [[ -n "${RIVE_BUILD_NUMBER:-}" ]]; then
+  RIVE_VERSION_ARGS+=("CURRENT_PROJECT_VERSION=$RIVE_BUILD_NUMBER")
+fi
+if [[ -n "${RIVE_MARKETING_VERSION:-}" ]]; then
+  RIVE_VERSION_ARGS+=("MARKETING_VERSION=$RIVE_MARKETING_VERSION")
+fi
+
+require_asc_key() {
+  if [[ -z "${RIVE_ASC_KEY_ID:-}" || -z "${RIVE_ASC_ISSUER_ID:-}" ]]; then
+    printf 'Set RIVE_ASC_KEY_ID and RIVE_ASC_ISSUER_ID (App Store Connect API key).\n' >&2
+    printf 'Place AuthKey_%s.p8 in ~/.appstoreconnect/private_keys/ so altool can find it.\n' "${RIVE_ASC_KEY_ID:-<KEY_ID>}" >&2
+    exit 2
+  fi
+  if [[ ! -f "$RIVE_IPA" ]]; then
+    printf 'Missing %s. Run "%s archive" then "%s export" first.\n' "$RIVE_IPA" "$0" "$0" >&2
+    exit 2
+  fi
+}
+
+# Xcode's system rsync must spawn a compatible system worker, not Homebrew rsync.
+case "$RIVE_ACTION" in
+  archive)
+    RIVE_SIGNING=(-allowProvisioningUpdates)
+    if [[ "${RIVE_UNSIGNED:-0}" == "1" ]]; then
+      RIVE_SIGNING=(CODE_SIGNING_ALLOWED=NO)
+    fi
+    /usr/bin/env PATH=/usr/bin:/bin:/usr/sbin:/sbin /usr/bin/xcodebuild \
+      -project "$RIVE_ROOT/ios/Rive.xcodeproj" -scheme Rive -configuration Release \
+      -destination 'generic/platform=iOS' -derivedDataPath "$RIVE_OUTPUT/DerivedData" \
+      -archivePath "$RIVE_OUTPUT/Rive.xcarchive" "${RIVE_SIGNING[@]}" \
+      ${RIVE_VERSION_ARGS[@]+"${RIVE_VERSION_ARGS[@]}"} archive
+    ;;
+  export)
+    /usr/bin/env PATH=/usr/bin:/bin:/usr/sbin:/sbin /usr/bin/xcodebuild \
+      -exportArchive -archivePath "$RIVE_OUTPUT/Rive.xcarchive" \
+      -exportPath "$RIVE_OUTPUT/AppStore" \
+      -exportOptionsPlist "$RIVE_ROOT/ios/ExportOptions.plist" -allowProvisioningUpdates
+    ;;
+  validate)
+    # Same checks App Store Connect runs on upload (bundle, icon, entitlements, plist).
+    require_asc_key
+    /usr/bin/xcrun altool --validate-app -f "$RIVE_IPA" -t ios \
+      --apiKey "$RIVE_ASC_KEY_ID" --apiIssuer "$RIVE_ASC_ISSUER_ID"
+    ;;
+  upload)
+    # Uploads the exported IPA to App Store Connect. Xcode Organizer or Transporter are equivalent.
+    require_asc_key
+    /usr/bin/xcrun altool --upload-app -f "$RIVE_IPA" -t ios \
+      --apiKey "$RIVE_ASC_KEY_ID" --apiIssuer "$RIVE_ASC_ISSUER_ID"
+    ;;
+  *)
+    printf 'Usage: %s [archive|export|validate|upload]\n' "$0" >&2
+    exit 2
+    ;;
+esac

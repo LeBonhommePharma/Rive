@@ -1,17 +1,18 @@
 import type { Metadata } from "next";
-import { IBM_Plex_Mono, Outfit } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 
-const outfit = Outfit({
+const outfit = localFont({
+  src: [
+    { path: "../../public/Transit/fonts/Outfit-Regular.ttf", weight: "400" },
+    { path: "../../public/Transit/fonts/Outfit-Bold.ttf", weight: "700" },
+  ],
   variable: "--font-outfit",
-  subsets: ["latin"],
   display: "swap",
 });
-
-const plex = IBM_Plex_Mono({
+const plex = localFont({
+  src: "../../public/Transit/fonts/IBMPlexMono-Regular.ttf",
   variable: "--font-plex",
-  subsets: ["latin"],
-  weight: ["400", "500"],
   display: "swap",
 });
 

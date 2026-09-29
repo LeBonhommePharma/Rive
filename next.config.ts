@@ -6,7 +6,11 @@ const nextConfig: NextConfig = {
     root: process.cwd(),
   },
   async rewrites() {
-    return [{ source: "/Transit", destination: "/Transit/index.html" }];
+    return [
+      { source: "/Transit/data/:path*", destination: "/data/:path*" },
+      { source: "/Transit/l10n/:path*", destination: "/l10n/:path*" },
+      { source: "/Transit/favicon.svg", destination: "/favicon.svg" },
+    ];
   },
   async headers() {
     return [

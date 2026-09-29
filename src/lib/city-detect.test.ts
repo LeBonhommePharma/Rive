@@ -84,7 +84,7 @@ describe("city auto-detect", () => {
     assert.equal(resolveCityRequest("laval").city, "montreal");
     const src = readFileSync(join(process.cwd(), "public", "Transit", "app.js"), "utf8");
     assert.match(src, /const \{ city, snap \} = cityAfterHereSample/);
-    assert.match(src, /state\.city = city;\s*state\.atlas = atlas;\s*state\.timetable = timetable;\s*paintCityButtons\(\);/s);
+    assert.match(src, /state\.city = city;\s*state\.atlas = atlas;\s*state\.timetable = timetable;\s*paintCityButtons\(\);/);
   });
 
   it("loads packed Sherbrooke and Trois-Rivières atlases as their own cities", () => {

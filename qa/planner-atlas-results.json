@@ -1,0 +1,299 @@
+{
+  "scope": "Synthetic capability checks of actual standalone source; no browser, network, live service, or street-routing validation.",
+  "sourceSha256": {
+    "public/Transit/app.js": "aca81270cf8e8a94bcc927f9fbb39c96defcdf78a224d9ce1f8b09fe83c06ce0",
+    "public/Transit/rive-kit.js": "285a6ddf97a55ed45172d94329d8f8917635ef41484354d7c0003efd549db0ce"
+  },
+  "summary": {
+    "total": 11,
+    "passed": 3,
+    "failed": 8,
+    "observations": 1
+  },
+  "cases": [
+    {
+      "id": "bus_to_bus",
+      "passed": false,
+      "expected": "R1 at 10:00, R2 at 10:12, arrive 10:22; two transit legs",
+      "actual": [
+        {
+          "minutes": 14,
+          "legs": [
+            {
+              "kind": "road",
+              "minutes": 14
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "metro_to_metro",
+      "passed": false,
+      "expected": "R1 at 10:00, R2 at 10:12, arrive 10:22; two transit legs",
+      "actual": [
+        {
+          "minutes": 14,
+          "legs": [
+            {
+              "kind": "road",
+              "minutes": 14
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "metro_to_bus",
+      "passed": false,
+      "expected": "R1 at 10:00, R2 at 10:12, arrive 10:22; two transit legs",
+      "actual": [
+        {
+          "minutes": 14,
+          "legs": [
+            {
+              "kind": "road",
+              "minutes": 14
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "two_transfers",
+      "passed": false,
+      "expected": "Three transit legs, arrive 10:34",
+      "actual": [
+        {
+          "minutes": 20,
+          "legs": [
+            {
+              "kind": "road",
+              "minutes": 20
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "walk_bike_transit",
+      "passed": false,
+      "expected": "Walk to pickup, bike to return, walk to R at 10:15, transit to destination",
+      "actual": [
+        {
+          "minutes": 14,
+          "legs": [
+            {
+              "kind": "road",
+              "minutes": 14
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "direct_transit",
+      "passed": true,
+      "expected": "Board R at 10:01 and arrive 10:11",
+      "actual": [
+        {
+          "minutes": 8,
+          "legs": [
+            {
+              "kind": "road",
+              "minutes": 8
+            }
+          ]
+        },
+        {
+          "minutes": 11,
+          "legs": [
+            {
+              "kind": "transit",
+              "route": "R",
+              "minutes": 10,
+              "depart": 601,
+              "arrive": 611
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "access_walk_catches_real_departure",
+      "passed": false,
+      "expected": "8-minute access walk misses 10:01; board at 10:30 and arrive 10:40",
+      "actual": [
+        {
+          "minutes": 18,
+          "legs": [
+            {
+              "kind": "walk",
+              "minutes": 8
+            },
+            {
+              "kind": "transit",
+              "route": "R",
+              "minutes": 10,
+              "depart": 608,
+              "arrive": 618
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "id": "simple_ridden_segment",
+      "passed": true,
+      "expected": [
+        [
+          -73.57,
+          45.5
+        ],
+        [
+          -73.56,
+          45.5
+        ]
+      ],
+      "actual": [
+        [
+          -73.57,
+          45.5
+        ],
+        [
+          -73.56,
+          45.5
+        ]
+      ]
+    },
+    {
+      "id": "loop_ridden_segment",
+      "passed": false,
+      "expected": "Ride starts at repeated point index 3; only final segment should be included",
+      "actual": [
+        [
+          -73.57,
+          45.5
+        ],
+        [
+          -73.56,
+          45.5
+        ],
+        [
+          -73.56,
+          45.51
+        ],
+        [
+          -73.57,
+          45.5
+        ],
+        [
+          -73.57,
+          45.49
+        ]
+      ]
+    },
+    {
+      "id": "active_detour_trip_geometry",
+      "passed": false,
+      "expected": [
+        [
+          0,
+          45
+        ],
+        [
+          0.03,
+          45.02
+        ],
+        [
+          0.06,
+          45
+        ]
+      ],
+      "actual": [
+        [
+          [
+            0,
+            45
+          ],
+          [
+            0.06,
+            45
+          ]
+        ]
+      ]
+    },
+    {
+      "id": "ranking_of_generated_candidates",
+      "passed": true,
+      "expected": {
+        "minutes": [
+          10,
+          18,
+          25
+        ],
+        "gaps": [
+          0,
+          8,
+          15
+        ]
+      },
+      "actual": [
+        {
+          "minutes": 10,
+          "label": "second",
+          "gap": 0
+        },
+        {
+          "minutes": 18,
+          "label": "third",
+          "gap": 8
+        },
+        {
+          "minutes": 25,
+          "label": "first",
+          "gap": 15
+        }
+      ]
+    }
+  ],
+  "observations": [
+    {
+      "id": "bike_and_car_are_straight_line_estimates",
+      "stationCount": 0,
+      "distanceMeters": 1179.400298274564,
+      "actual": [
+        {
+          "minutes": 2,
+          "legs": [
+            {
+              "kind": "road",
+              "minutes": 2
+            }
+          ]
+        },
+        {
+          "minutes": 5,
+          "legs": [
+            {
+              "kind": "bike",
+              "minutes": 5
+            }
+          ]
+        },
+        {
+          "minutes": 16,
+          "legs": [
+            {
+              "kind": "walk",
+              "minutes": 16
+            }
+          ]
+        }
+      ],
+      "bikeFormulaMinutes": 5,
+      "roadFormulaMinutes": 2,
+      "interpretation": "A generic bike option appears with zero bike stations. This proves no bike-share availability validation; it does not prove that using a personal bike is impossible."
+    }
+  ]
+}

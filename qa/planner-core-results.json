@@ -1,0 +1,422 @@
+{
+  "scope": "Synthetic capability and correctness diagnostics; transit options are assessed separately from road/walk alternatives.",
+  "clock": {
+    "minutesOfDay": 480,
+    "activeServiceIndexes": [
+      0
+    ],
+    "liveCalendarUsed": false
+  },
+  "specification": {
+    "transfers": "https://gtfs.org/documentation/schedule/reference/#transferstxt",
+    "verified": "2026-09-06"
+  },
+  "sources": {
+    "src/lib/planner.ts": "901dd36a062869eb949f69b4c5b596d942bd059bec832c62ae6c86f13180d848",
+    "src/lib/geo.ts": "4f315c215af4a1fec0fd9e93ea59b061c626d5e9b8da66fe5709cae11cd00c26",
+    "src/lib/map-legs.ts": "8b3158541d9bb18f3f79a4b1d30d88c4b35c53e6aabf6e7bd1fe04fd8e86f44d",
+    "src/lib/atlas/types.ts": "aa5251046171e68244ca8460e099af7c94059dc106185dc1a733a53b93f34be2"
+  },
+  "cases": [
+    {
+      "id": "control-direct-ride",
+      "statement": "Positive control: a bus at the exact origin departs 08:00 and arrives after one 10-minute hop.",
+      "expected": {
+        "board": 480,
+        "arrive": 490,
+        "transfers": 0
+      },
+      "actual": {
+        "arrive": 490,
+        "minutes": 10,
+        "transfers": 0,
+        "sumLegMinutes": 10,
+        "legs": [
+          {
+            "kind": "transit",
+            "route": "A",
+            "from": "O",
+            "to": "D",
+            "depart": 480,
+            "arrive": 490,
+            "minutes": 10
+          }
+        ]
+      },
+      "pass": true,
+      "source": [
+        "src/lib/planner.ts:232-313"
+      ]
+    },
+    {
+      "id": "control-one-transfer",
+      "statement": "Positive control: two 10-minute rides with a reachable 2-minute same-stop connection arrive 08:22.",
+      "expected": {
+        "board": [
+          480,
+          492
+        ],
+        "arrive": 502,
+        "transfers": 1
+      },
+      "actual": {
+        "arrive": 502,
+        "minutes": 22,
+        "transfers": 1,
+        "sumLegMinutes": 22,
+        "legs": [
+          {
+            "kind": "transit",
+            "route": "A",
+            "from": "O",
+            "to": "X",
+            "depart": 480,
+            "arrive": 490,
+            "minutes": 10
+          },
+          {
+            "kind": "walk",
+            "from": "X",
+            "to": "X",
+            "minutes": 2,
+            "meters": 80
+          },
+          {
+            "kind": "transit",
+            "route": "B",
+            "from": "X",
+            "to": "D",
+            "depart": 492,
+            "arrive": 502,
+            "minutes": 10
+          }
+        ]
+      },
+      "pass": true,
+      "source": [
+        "src/lib/planner.ts:354-519"
+      ]
+    },
+    {
+      "id": "access-walk-misses-departure",
+      "statement": "A five-minute access walk misses 08:02; the next actual bus is 08:20 and arrives 08:30.",
+      "expected": {
+        "accessMinutes": 5,
+        "board": 500,
+        "arrive": 510
+      },
+      "actual": {
+        "arrive": 495,
+        "minutes": 15,
+        "transfers": 0,
+        "sumLegMinutes": 15,
+        "legs": [
+          {
+            "kind": "walk",
+            "from": "375 m before origin",
+            "to": "O",
+            "minutes": 5,
+            "meters": 375
+          },
+          {
+            "kind": "transit",
+            "route": "A",
+            "from": "O",
+            "to": "D",
+            "depart": 485,
+            "arrive": 495,
+            "minutes": 10
+          }
+        ]
+      },
+      "pass": false,
+      "source": [
+        "src/lib/planner.ts:254-260",
+        "src/lib/planner.ts:408-420"
+      ]
+    },
+    {
+      "id": "transfer-walk-misses-departure",
+      "statement": "Alighting 08:10 then walking 900 m takes 12 minutes; 08:12 is unreachable, so board 08:40 and arrive 08:50.",
+      "expected": {
+        "alight": 490,
+        "transferMinutes": 12,
+        "earliestBoardingTime": 502,
+        "board": 520,
+        "arrive": 530
+      },
+      "actual": {
+        "itinerary": {
+          "arrive": 502,
+          "minutes": 22,
+          "transfers": 1,
+          "sumLegMinutes": 32,
+          "legs": [
+            {
+              "kind": "transit",
+              "route": "A",
+              "from": "O",
+              "to": "X",
+              "depart": 480,
+              "arrive": 490,
+              "minutes": 10
+            },
+            {
+              "kind": "walk",
+              "from": "X",
+              "to": "Y",
+              "minutes": 12,
+              "meters": 900
+            },
+            {
+              "kind": "transit",
+              "route": "B",
+              "from": "Y",
+              "to": "D",
+              "depart": 492,
+              "arrive": 502,
+              "minutes": 10
+            }
+          ]
+        },
+        "chronological": false
+      },
+      "pass": false,
+      "source": [
+        "src/lib/planner.ts:422-441",
+        "src/lib/planner.ts:72-80"
+      ]
+    },
+    {
+      "id": "more-stops-earlier-arrival",
+      "statement": "Transfer at X traverses 3 hops but misses 08:06 under the planner's own 2-minute minimum. Staying on A to Y traverses 4 hops, catches the same B at 08:16, and arrives 08:26 instead of 09:00.",
+      "expected": {
+        "transferStop": "Y",
+        "firstAlight": 490,
+        "secondBoard": 496,
+        "arrive": 506
+      },
+      "actual": {
+        "arrive": 540,
+        "minutes": 60,
+        "transfers": 1,
+        "sumLegMinutes": 60,
+        "legs": [
+          {
+            "kind": "transit",
+            "route": "A",
+            "from": "O",
+            "to": "X",
+            "depart": 480,
+            "arrive": 485,
+            "minutes": 5
+          },
+          {
+            "kind": "walk",
+            "from": "X",
+            "to": "X",
+            "minutes": 35,
+            "meters": 80
+          },
+          {
+            "kind": "transit",
+            "route": "B",
+            "from": "X",
+            "to": "D",
+            "depart": 520,
+            "arrive": 540,
+            "minutes": 20
+          }
+        ]
+      },
+      "pass": false,
+      "source": [
+        "src/lib/planner.ts:374-383"
+      ]
+    },
+    {
+      "id": "two-transfer-chain",
+      "statement": "The only public-transit path is A 08:00–08:10, B 08:12–08:22, C 08:24–08:34; each interchange is at the same stop.",
+      "expected": {
+        "transitRoutes": [
+          "A",
+          "B",
+          "C"
+        ],
+        "transfers": 2,
+        "arrive": 514
+      },
+      "actual": [],
+      "pass": false,
+      "source": [
+        "src/lib/planner.ts:354-519"
+      ]
+    },
+    {
+      "id": "gtfs-forbidden-transfer",
+      "statement": "An explicit GTFS type-3 transfer prohibits the only A-to-B interchange.",
+      "expected": {
+        "transitItineraries": 0
+      },
+      "actual": [
+        {
+          "arrive": 502,
+          "minutes": 22,
+          "transfers": 1,
+          "sumLegMinutes": 22,
+          "legs": [
+            {
+              "kind": "transit",
+              "route": "A",
+              "from": "O",
+              "to": "X",
+              "depart": 480,
+              "arrive": 490,
+              "minutes": 10
+            },
+            {
+              "kind": "walk",
+              "from": "X",
+              "to": "X",
+              "minutes": 2,
+              "meters": 80
+            },
+            {
+              "kind": "transit",
+              "route": "B",
+              "from": "X",
+              "to": "D",
+              "depart": 492,
+              "arrive": 502,
+              "minutes": 10
+            }
+          ]
+        }
+      ],
+      "pass": false,
+      "source": [
+        "src/lib/atlas/types.ts:65-70",
+        "src/lib/planner.ts:374-441"
+      ]
+    },
+    {
+      "id": "gtfs-minimum-transfer-time",
+      "statement": "An explicit GTFS type-2 minimum of 600 seconds makes 08:12 unreachable after alighting 08:10; board 08:30 and arrive 08:40.",
+      "expected": {
+        "minimumTransferMinutes": 10,
+        "board": 510,
+        "arrive": 520
+      },
+      "actual": [
+        {
+          "arrive": 502,
+          "minutes": 22,
+          "transfers": 1,
+          "sumLegMinutes": 22,
+          "legs": [
+            {
+              "kind": "transit",
+              "route": "A",
+              "from": "O",
+              "to": "X",
+              "depart": 480,
+              "arrive": 490,
+              "minutes": 10
+            },
+            {
+              "kind": "walk",
+              "from": "X",
+              "to": "X",
+              "minutes": 2,
+              "meters": 80
+            },
+            {
+              "kind": "transit",
+              "route": "B",
+              "from": "X",
+              "to": "D",
+              "depart": 492,
+              "arrive": 502,
+              "minutes": 10
+            }
+          ]
+        }
+      ],
+      "pass": false,
+      "source": [
+        "src/lib/atlas/types.ts:65-70",
+        "src/lib/planner.ts:374-441"
+      ]
+    },
+    {
+      "id": "repeated-stop-on-loop",
+      "statement": "A loop D→O→U→D has an O 08:00→D 08:10 journey. Destination D's first occurrence precedes O, but its second occurrence is reachable.",
+      "expected": {
+        "stopIds": [
+          "O",
+          "U",
+          "D"
+        ],
+        "arrive": 490
+      },
+      "actual": [],
+      "pass": false,
+      "source": [
+        "src/lib/planner.ts:33-39",
+        "src/lib/planner.ts:250-252"
+      ]
+    },
+    {
+      "id": "loop-geometry-direction",
+      "statement": "P and D share coordinates on a loop. The actual O→U→D itinerary must keep U; nearest-coordinate slicing must not substitute the earlier O→P segment.",
+      "expected": {
+        "stopIds": [
+          "O",
+          "U",
+          "D"
+        ],
+        "coordinates": [
+          [
+            0.03597,
+            0
+          ],
+          [
+            0.07195,
+            0.03597
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      },
+      "actual": {
+        "stopIds": [
+          "O",
+          "U",
+          "D"
+        ],
+        "coordinates": [
+          [
+            0.03597,
+            0
+          ],
+          [
+            0,
+            0
+          ]
+        ]
+      },
+      "pass": false,
+      "source": [
+        "src/lib/map-legs.ts:40-43",
+        "src/lib/geo.ts:134-151"
+      ]
+    }
+  ],
+  "summary": {
+    "cases": 10,
+    "passed": 2,
+    "failed": 8
+  }
+}

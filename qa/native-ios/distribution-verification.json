@@ -1,0 +1,29 @@
+{
+  "artifact": "build/ios/AppStore/Rive.ipa",
+  "sha256": "642c264bc748ba0e25a9a51737e181826ca7606b581122ea6b56bb1e4f70222b",
+  "size_bytes": 7665988,
+  "display_name": "Rive",
+  "bundle_id": "com.thebonhomme.rive",
+  "version": "1.0.0",
+  "build": "1",
+  "minimum_ios": "17.0",
+  "sdk": "iphoneos27.2",
+  "xcode_build": "27B5019j",
+  "team_id": "ZJLX84G8QV",
+  "application_identifier": "ZJLX84G8QV.com.thebonhomme.rive",
+  "get_task_allow": false,
+  "beta_reports_active": true,
+  "provisioned_devices_present": false,
+  "provisions_all_devices": false,
+  "profile_expires_utc": "2027-09-21T03:02:04Z",
+  "codesign_verify_exit_code": 0,
+  "privacy_manifest_present": true,
+  "bundled_cities": [
+    "montreal",
+    "quebec",
+    "sherbrooke",
+    "trois-rivieres"
+  ],
+  "uploaded": false,
+  "limitation": "Local distribution verification only; SDK acceptance and App Store Connect validation not performed."
+}

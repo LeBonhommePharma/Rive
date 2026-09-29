@@ -21,7 +21,10 @@ export function montrealYyyymmdd(date = new Date()) {
   return `${y}${m}${d}`;
 }
 
-/** Latest YYYYMMDD from calendar.end, exception dates, and meta.end. */
+/**
+ * Latest YYYYMMDD from calendar.end, exception dates, and meta.end.
+ * @param {{calendar?: Array<{end?: string}>, exceptions?: Array<{date?: string}>, meta?: {end?: string}}} [pack]
+ */
 export function coverageEndYyyymmdd({ calendar = [], exceptions = [], meta } = {}) {
   let end = "";
   for (const row of calendar) {

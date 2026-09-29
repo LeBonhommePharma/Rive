@@ -185,7 +185,7 @@ describe("WebGPU wall lighting", () => {
       token: "riveShade",
       postMessage(msg: { id: number; normals: number[]; light: number[] }) {
         if (this !== handler || this.token !== "riveShade") throw new Error("unbound postMessage");
-        const packed = [];
+        const packed: Array<{ x: number; y: number; z: number }> = [];
         for (let i = 0; i + 2 < msg.normals.length; i += 3) {
           packed.push({ x: msg.normals[i], y: msg.normals[i + 1], z: msg.normals[i + 2] });
         }

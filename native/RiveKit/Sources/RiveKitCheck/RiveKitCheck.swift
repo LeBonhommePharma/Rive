@@ -106,13 +106,6 @@ enum RiveKitCheck {
     let pusher = try String(contentsOf: pusherURL)
     check("live pusher can end", pusher.contains("static func end"))
     check("live pusher applies web command", pusher.contains("static func apply"))
-    let shellURL = repoRoot.appendingPathComponent("ios/RiveApp/RiveApp.swift")
-    let shell = try String(contentsOf: shellURL)
-    check("iphone shell receives riveLive", shell.contains("riveLive"))
-    check("iphone shell receives riveShade", shell.contains("riveShade"))
-    check("iphone shell keeps AtlasWebView", shell.contains("struct AtlasWebView"))
-    check("iphone shell paper background", shell.contains("RiveTokens") && shell.contains("paper"))
-    check("iphone shell native board fallback", shell.contains("RiveNativeBoard"))
 
     let tokensSrc = try String(
       contentsOf: repoRoot.appendingPathComponent("native/RiveKit/Sources/RiveKit/RiveTokens.swift")

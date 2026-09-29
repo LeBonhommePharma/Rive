@@ -47,6 +47,12 @@ next-env.d.ts
 .build/
 .swiftpm/
 *.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+*.xcuserstate
+*.xcresult/
 
 # generated personal wrapper
 /dist/
+
+# Generated from the installed MapLibre version before dev/build.
+/public/maplibre/

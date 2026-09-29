@@ -63,6 +63,8 @@ const TZ = "America/Montreal";
 
 const state = {
   city: "quebec",
+  locale: "fr",
+  messages: {},
   cityLocked: false,
   visitId: "",
   cityCenters: {
@@ -92,6 +94,8 @@ const state = {
   rider: emptyRiderStore(),
   probes: emptyProbeStore(),
   watchId: null,
+  geoStatus: "idle",
+  geoError: null,
   selectingOrigin: false,
   pois: [],
   searchPois: [],
@@ -109,6 +113,40 @@ const state = {
   pin: null,
   camera: { lon: -71.2082, lat: 46.8131, zoom: 12.4, pitch: 0 },
 };
+
+function atlasText(french, english) {
+  return String(state.locale || "fr").toLowerCase().startsWith("fr") ? french : english;
+}
+
+function chooseAtlasLocale(wanted, available) {
+  for (const raw of wanted) {
+    const tag = String(raw || "").toLowerCase().replaceAll("_", "-");
+    const exact = available.find((key) => key.toLowerCase() === tag);
+    if (exact) return exact;
+    const base = tag.split("-")[0];
+    const baseMatch = available.find((key) => key.toLowerCase() === base)
+      || available.find((key) => key.toLowerCase().startsWith(base + "-"));
+    if (baseMatch) return baseMatch;
+  }
+  return available.includes("fr") ? "fr" : available.includes("en") ? "en" : available[0] || "fr";
+}
+
+function atlasLocaleTable(tables, locale) {
+  return { ...tables.en, ...tables[locale.split("-")[0]], ...tables[locale] };
+}
+
+function paintAtlasLabels(table) {
+  for (const element of document.querySelectorAll("[data-i18n]")) {
+    const label = table[element.dataset.i18n];
+    if (typeof label === "string") element.textContent = label;
+  }
+  for (const [marker, attribute] of [["data-i18n-aria", "aria-label"], ["data-i18n-title", "title"]]) {
+    for (const element of document.querySelectorAll(`[${marker}]`)) {
+      const label = table[element.getAttribute(marker)];
+      if (typeof label === "string") element.setAttribute(attribute, label);
+    }
+  }
+}
 
 async function readJsonResponseLimited(response, maxBytes) {
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
@@ -314,10 +352,10 @@ function haversineMeters(a, b) {
 }
 
 function pinHereForCity(here, center, maxMeters = 40000) {
-  if (here && here.source === "gps" && Number.isFinite(here.lon) && Number.isFinite(here.lat)) {
+  if (here && (here.source === "gps" || here.source === "manual") && Number.isFinite(here.lon) && Number.isFinite(here.lat)) {
     const meters = haversineMeters(here, center);
     if (Number.isFinite(meters) && meters <= maxMeters) {
-      return { lon: here.lon, lat: here.lat, source: "gps" };
+      return { ...here };
     }
   }
   return { lon: center.lon, lat: center.lat, source: "map" };
@@ -593,7 +631,7 @@ function planFromHere(from, destStop, now, active) {
               kind: "walk",
               minutes: w1,
               meters: Math.round(walk1),
-              label: `Marche ${formatMeters(walk1)}`,
+              label: `${atlasText("Marche", "Walk")} ${formatMeters(walk1)}`,
               from: { lon: from.lon, lat: from.lat },
               to: { lon: origin.lon, lat: origin.lat, name: origin.name, label: origin.name },
               line: [
@@ -622,7 +660,7 @@ function planFromHere(from, destStop, now, active) {
               kind: "walk",
               minutes: w2,
               meters: Math.round(walk2),
-              label: `Marche ${formatMeters(walk2)}`,
+              label: `${atlasText("Marche", "Walk")} ${formatMeters(walk2)}`,
               from: { lon: dest.lon, lat: dest.lat },
               to: { lon: destStop.lon, lat: destStop.lat },
               line: [
@@ -816,7 +854,7 @@ function planFromHere(from, destStop, now, active) {
             kind: "walk",
             minutes: walkMin,
             meters: Math.round(walkM),
-            label: `Marche ${formatMeters(walkM)}`,
+            label: `${atlasText("Marche", "Walk")} ${formatMeters(walkM)}`,
             from: { lon: from.lon, lat: from.lat },
             to: { lon: destStop.lon, lat: destStop.lat },
             line: [
@@ -837,7 +875,7 @@ function planFromHere(from, destStop, now, active) {
             kind: "bike",
             minutes: bikeMin,
             meters: Math.round(walkM),
-            label: `Vélo ${formatMeters(walkM)}`,
+            label: `${atlasText("Vélo", "Bike")} ${formatMeters(walkM)}`,
             from: { lon: from.lon, lat: from.lat },
             to: { lon: destStop.lon, lat: destStop.lat },
             line: [
@@ -864,7 +902,7 @@ function planFromHere(from, destStop, now, active) {
             kind: "road",
             minutes: roadMin,
             meters: Math.round(walkM),
-            label: `Auto ${formatMeters(walkM)}`,
+            label: `${atlasText("Auto", "Car")} ${formatMeters(walkM)}`,
             from: { lon: from.lon, lat: from.lat },
             to: { lon: destStop.lon, lat: destStop.lat },
             line: [
@@ -967,7 +1005,7 @@ function collapseDueByDirection(rows, limit = 12) {
 }
 
 function formatRelative(wait) {
-  if (wait <= 0) return "maintenant";
+  if (wait <= 0) return atlasText("maintenant", "now");
   if (wait < 60) return `${wait} min`;
   const h = Math.floor(wait / 60);
   const m = wait % 60;
@@ -980,6 +1018,12 @@ function riderPoint() {
   }
   if (state.stop) return { lon: state.stop.lon, lat: state.stop.lat, stopId: state.stop.id };
   return { lon: state.camera.lon, lat: state.camera.lat };
+}
+
+function originDescription() {
+  if (state.here?.source === "gps") return atlasText("ta dernière position reçue", "your last received location");
+  if (state.here?.source === "manual") return atlasText("ton départ choisi", "your chosen starting point");
+  return atlasText("le centre de la carte par défaut", "the default map centre");
 }
 
 function boardPoint() {
@@ -1310,7 +1354,7 @@ let sheetIdle = 0;
 function sheetHasFocus() {
   const sheet = document.getElementById("sheet");
   const el = document.activeElement;
-  return !!(sheet && el && sheet.contains(el) && (el.tagName === "INPUT" || el.tagName === "TEXTAREA"));
+  return !!(sheet && el && sheet.contains(el));
 }
 
 function setSheetTall(on) {
@@ -1329,17 +1373,18 @@ function setSheetOpen(open) {
     sheetIdle = 0;
   }
   if (fold) {
-    const label = state.sheetOpen ? "Carte" : "Fiche";
+    const label = state.sheetOpen ? atlasText("Carte", "Map") : atlasText("Fiche", "Panel");
     // Write the label span, not the button: textContent here used to wipe the glyph.
     const foldLabel = fold.querySelector(".tl");
     if (foldLabel) foldLabel.textContent = label;
     else fold.textContent = label;
-    const hint = state.sheetOpen ? "Replier la fiche pour voir la carte" : "Ouvrir la fiche";
+    const hint = state.sheetOpen ? atlasText("Replier la fiche pour voir la carte", "Collapse the panel to see the map") : atlasText("Ouvrir la fiche", "Open the panel");
     fold.title = hint;
     fold.setAttribute("aria-label", hint);
     fold.setAttribute("aria-expanded", state.sheetOpen ? "true" : "false");
   }
   paintMapHud();
+  paintGeoAsk();
   requestDraw();
 }
 
@@ -1378,19 +1423,19 @@ function paintMapHud() {
   hud.hidden = false;
   const stop = state.stop || (state.atlas && riderPoint() ? nearbyStops(liveStops(), riderPoint(), 400, 1)[0] : null);
   const now = clockMinutes();
-  let dueLine = "Touche un arrêt sur la carte.";
+  let dueLine = atlasText("Touche un arrêt sur la carte.", "Tap a stop on the map.");
   if (stop && state.atlas && state.timetable) {
     const active = activeServiceIndexes(state.atlas, new Date());
     const rows = scheduleAtStop(state.atlas, state.timetable, stop, now, active).slice(0, 3);
     dueLine = rows.length
       ? rows.map((row) => `${row.shortName} ${formatClock(row.depart)}`).join(" · ")
-      : "Aucun passage maintenant.";
+      : atlasText("Aucun passage maintenant.", "No departures right now.");
   }
   const title = stop
     ? `${stop.name}${Number.isFinite(stop.meters) ? " · " + formatMeters(stop.meters) : ""}`
     : state.dest
-      ? `Vers ${state.dest.name}`
-      : "Carte";
+      ? `${atlasText("Vers", "To")} ${state.dest.name}`
+      : atlasText("Carte", "Map");
   const trip = currentTrip();
   const extra = trip ? `${trip.minutes} min · ${tripMix(trip)}` : "";
   hud.innerHTML = `<div class="hud-title">${escapeHtml(title)}</div>
@@ -1441,7 +1486,7 @@ function applyTheme(mode) {
   document.documentElement.classList.toggle("night", state.theme === "night");
   const btn = document.getElementById("theme");
   if (btn) {
-    const label = themeButtonLabel(state.theme);
+    const label = atlasText(themeButtonLabel(state.theme), state.theme === "night" ? "Day" : "Night");
     btn.setAttribute("aria-label", label);
     btn.title = label;
   }
@@ -1546,7 +1591,7 @@ async function loadCityIndex() {
 
 async function refreshFeeds(userDeclared) {
   const btn = document.getElementById("refresh");
-  toolStatus("Lecture des flux officiels…");
+  toolStatus(atlasText("Lecture des flux officiels…", "Reading official feeds…"));
   if (btn) {
     btn.classList.add("busy");
     btn.classList.remove("ok", "err");
@@ -1569,19 +1614,19 @@ async function refreshFeeds(userDeclared) {
     if (btn) {
       btn.classList.remove("busy");
       btn.classList.add("ok");
-      btn.title = "À jour";
-      toolStatus("Horaires à jour.", "ok");
+      btn.title = atlasText("À jour", "Up to date");
+      toolStatus(atlasText("Horaires à jour.", "Schedules updated."), "ok");
       btn.setAttribute("aria-busy", "false");
-      btn.setAttribute("aria-label", "À jour");
+      btn.setAttribute("aria-label", atlasText("À jour", "Up to date"));
     }
   } catch {
-    toolStatus("Réseau indisponible. Réessaie.", "err");
+    toolStatus(atlasText("Réseau indisponible. Réessaie.", "Network unavailable. Try again."), "err");
     if (btn) {
       btn.classList.remove("busy");
       btn.classList.add("err");
-      btn.title = "Actualiser";
+      btn.title = atlasText("Actualiser", "Refresh");
       btn.setAttribute("aria-busy", "false");
-      btn.setAttribute("aria-label", "Actualiser");
+      btn.setAttribute("aria-label", atlasText("Actualiser", "Refresh"));
     }
   }
 }
@@ -1784,12 +1829,15 @@ function setPitch(value) {
   syncPitchButton();
 }
 
+let cityLoadRequest = 0;
 async function loadCity(city) {
+  const request = ++cityLoadRequest;
   const base = new URL("./data/" + city + "/", import.meta.url);
   const [atlas, timetable] = await Promise.all([
     fetchJsonLimited(new URL("atlas.json", base), {}, 32 * 1024 * 1024),
     fetchJsonLimited(new URL("timetable.json", base), {}, 32 * 1024 * 1024),
   ]);
+  if (request !== cityLoadRequest) return false;
   prepareAtlas(atlas);
   state.city = city;
   state.atlas = atlas;
@@ -1798,18 +1846,22 @@ async function loadCity(city) {
   state.buildings = [];
   buildingKey = "";
   lineCache.clear();
-  state.camera = {
-    lon: atlas.meta.center[0],
-    lat: atlas.meta.center[1],
-    zoom: atlas.meta.zoom,
-    pitch: state.camera.pitch || 0,
-  };
-  state.userMoved = false;
-  cancelFlight();
-  state.here = pinHereForCity(state.here, {
-    lon: atlas.meta.center[0],
-    lat: atlas.meta.center[1],
-  });
+  if (!state.selectingOrigin) {
+    state.camera = {
+      lon: atlas.meta.center[0],
+      lat: atlas.meta.center[1],
+      zoom: atlas.meta.zoom,
+      pitch: state.camera.pitch || 0,
+    };
+    state.userMoved = false;
+    cancelFlight();
+    state.here = pinHereForCity(state.here, {
+      lon: atlas.meta.center[0],
+      lat: atlas.meta.center[1],
+    });
+  }
+  paintHereButton();
+  paintGeoAsk();
   document.getElementById("attr").textContent = atlas.meta.attribution;
   hideLoadError();
   renderNearby();
@@ -1818,12 +1870,14 @@ async function loadCity(city) {
   requestDraw();
   scheduleBuildings();
   await Promise.allSettled([loadPois(), loadRealtime(), loadBikes()]);
+  if (request !== cityLoadRequest) return false;
   scheduleWeather();
   renderNearby();
   renderLines();
   renderBikes();
   if (state.routeId) renderDue();
   requestDraw();
+  return true;
 }
 
 function showLoadError(err) {
@@ -1831,7 +1885,7 @@ function showLoadError(err) {
   if (!box) return;
   const why = err && err.message ? err.message : "réseau";
   box.hidden = false;
-  box.textContent = `Horaires indisponibles (${why}). Touche Actualiser.`;
+  box.textContent = atlasText(`Horaires indisponibles (${why}). Touche Actualiser.`, `Schedules unavailable (${why}). Tap Refresh.`);
 }
 
 function hideLoadError() {
@@ -1849,7 +1903,7 @@ function renderHits() {
     return;
   }
   const hits = searchPlaces(state.atlas, state.query);
-  box.innerHTML = hits.map(searchHitHtml).join("");
+  box.innerHTML = hits.length ? hits.map(searchHitHtml).join("") : emptySearchHtml();
   box.querySelectorAll("button").forEach((btn) => {
     btn.onclick = () => selectSearchHit(hits[Number(btn.dataset.index)] || null, false);
   });
@@ -1863,10 +1917,17 @@ function renderDestHits() {
     return;
   }
   const hits = searchPlaces(state.atlas, state.destQuery);
-  box.innerHTML = hits.map(searchHitHtml).join("");
+  box.innerHTML = hits.length ? hits.map(searchHitHtml).join("") : emptySearchHtml();
   box.querySelectorAll("button").forEach((btn) => {
     btn.onclick = () => selectSearchHit(hits[Number(btn.dataset.index)] || null, true);
   });
+}
+
+function emptySearchHtml() {
+  const message = String(state.locale || "fr").startsWith("fr")
+    ? "Aucun résultat dans ce réseau. Essaie un arrêt, un lieu ou un numéro de ligne."
+    : "No results in this network. Try a stop, a place or a route number.";
+  return `<li class="search-empty" role="status">${message}</li>`;
 }
 
 function searchHitHtml(hit, index) {
@@ -1874,18 +1935,18 @@ function searchHitHtml(hit, index) {
     const stop = hit.stop;
     const served = (stop.routes || []).length;
     const bits = [
-      stop.kind === 1 ? "métro" : "arrêt",
+      stop.kind === 1 ? "metro" : atlasText("arrêt", "stop"),
       stop.agencyId ? escapeHtml(stop.agencyId) : "",
       stop.code ? escapeHtml(stop.code) : "",
-      served ? `${served} ligne${served > 1 ? "s" : ""}` : "",
+      served ? `${served} ${atlasText("ligne", "route")}${served > 1 ? "s" : ""}` : "",
     ].filter(Boolean);
     return `<li><button type="button" data-index="${index}" data-id="${escapeHtml(stop.id)}"><span>${escapeHtml(hit.stop.name)}</span><span class="meta">${bits.join(" · ")}</span></button></li>`;
   }
   if (hit.kind === "poi") {
-    return `<li><button type="button" data-index="${index}"><span>${escapeHtml(hit.poi.name)}</span><span class="meta">${escapeHtml(hit.poi.category || "lieu")}</span></button></li>`;
+    return `<li><button type="button" data-index="${index}"><span>${escapeHtml(hit.poi.name)}</span><span class="meta">${escapeHtml(hit.poi.category || atlasText("lieu", "place"))}</span></button></li>`;
   }
   const route = hit.route;
-  return `<li><button type="button" data-index="${index}"><span>${escapeHtml(route.shortName)} · ${escapeHtml(route.longName || route.agencyName)}</span><span class="meta">ligne${route.agencyId ? ` · ${escapeHtml(route.agencyId)}` : ""}</span></button></li>`;
+  return `<li><button type="button" data-index="${index}"><span>${escapeHtml(route.shortName)} · ${escapeHtml(route.longName || route.agencyName)}</span><span class="meta">${atlasText("ligne", "route")}${route.agencyId ? ` · ${escapeHtml(route.agencyId)}` : ""}</span></button></li>`;
 }
 
 function selectSearchHit(hit, destination) {
@@ -1908,7 +1969,7 @@ function selectSearchHit(hit, destination) {
   }
   const nearest = nearbyStops(liveStops(), point, 900, 1)[0];
   if (nearest) openStop(nearest);
-  else applyHere(point.lon, point.lat, "map", Date.now(), true);
+  else applyHere(point.lon, point.lat, "manual", Date.now(), true);
 }
 
 function renderLines() {
@@ -1926,7 +1987,7 @@ function renderLines() {
     .slice(0, 16)
     .map((line) => {
       const on = state.routeId === line.routeId ? " on" : "";
-      const kind = line.type === 1 ? "métro" : line.towardDest ? "vers" : "";
+      const kind = line.type === 1 ? "metro" : line.towardDest ? atlasText("vers", "toward") : "";
       return `<button type="button" class="${on}" role="option" aria-selected="${on ? "true" : "false"}" data-id="${escapeHtml(line.routeId)}" style="background:${safeColor(line.color)};color:${safeColor(line.textColor, "#ffffff")}" title="${escapeHtml(line.shortName)}">${escapeHtml(line.shortName)}${kind ? ` <span class="meta">${kind}</span>` : ""}</button>`;
     })
     .join("");
@@ -1956,11 +2017,11 @@ function renderDue() {
   state.fusedVehicle = fused;
   box.hidden = false;
   if (!due.length) {
-    box.innerHTML = notice + `<h2>Prochains</h2><p class="lead">Aucun passage de cette ligne à ${formatClock(now)} près d'ici.</p>`;
+    box.innerHTML = notice + `<h2>${atlasText("Prochains", "Next departures")}</h2><p class="lead">${atlasText(`Aucun passage de cette ligne à ${formatClock(now)} près d'ici.`, `No departures for this route at ${formatClock(now)} nearby.`)}</p>`;
     return;
   }
   box.innerHTML =
-    notice + `<h2>Prochains</h2><p class="lead">À ${formatClock(now)}, près de toi. Horaires officiels.</p>` +
+    notice + `<h2>${atlasText("Prochains", "Next departures")}</h2><p class="lead">${atlasText(`À ${formatClock(now)}, près de ${originDescription()}. Horaires officiels.`, `At ${formatClock(now)}, near ${originDescription()}. Official schedules.`)}</p>` +
     due
       .map(
         (row) => `<div class="row">
@@ -1991,6 +2052,8 @@ function renderNearby() {
   const box = document.getElementById("nearby");
   if (!box || !state.atlas) return;
   const origin = riderPoint();
+  const title = document.getElementById("nearby-title");
+  if (title) title.textContent = state.here?.source === "gps" ? atlasText("Les arrêts autour de toi", "Stops near you") : atlasText("Les arrêts autour du départ", "Stops near your starting point");
   const stops = nearbyStops(liveStops(), origin, 700, 8);
   box.innerHTML = stops
     .map(
@@ -2006,7 +2069,7 @@ function renderNearby() {
 async function loadBikes() {
   const spec = BIKE_FEEDS[state.city];
   const title = document.getElementById("bikes-title");
-  if (title && spec) title.textContent = `${spec.label} près d'ici`;
+  if (title && spec) title.textContent = `${spec.label} ${atlasText("à proximité", "nearby")}`;
   if (!spec) {
     state.bikes = [];
     renderBikes();
@@ -2036,11 +2099,14 @@ async function loadBikes() {
 function renderBikes() {
   const box = document.getElementById("bikes");
   if (!box) return;
+  const spec = BIKE_FEEDS[state.city];
+  const title = document.getElementById("bikes-title");
+  if (title) title.textContent = spec ? `${spec.label} ${atlasText("à proximité", "nearby")}` : atlasText("Un vélo à proximité", "A bike nearby");
   const racks = nearbyStations(state.bikes || [], riderPoint(), 500, 6);
   box.innerHTML = racks
     .map(
       (row) =>
-        `<li>${escapeHtml(row.name)} <span class="meta">${formatMeters(row.meters)} · ${row.bikes} vélos · ${row.docks} places</span></li>`,
+        `<li>${escapeHtml(row.name)} <span class="meta">${formatMeters(row.meters)} · ${row.bikes} ${atlasText("vélos", "bikes")} · ${row.docks} ${atlasText("places", "docks")}</span></li>`,
     )
     .join("");
 }
@@ -2074,11 +2140,13 @@ function paintHereButton() {
   btn.classList.toggle("on", following);
   btn.classList.toggle("dim", !fixed);
   btn.setAttribute("aria-pressed", following ? "true" : "false");
+  btn.setAttribute("aria-busy", state.geoStatus === "locating" ? "true" : "false");
   btn.title = !fixed
-    ? "Position inconnue — touche pour autoriser"
+    ? locationCopy().locate
     : following
-      ? "La carte suit ta position"
-      : "Recentrer sur ta position";
+      ? (state.locale?.startsWith("fr") ? "La carte suit ta position" : "The map follows your location")
+      : locationCopy().recenter;
+  btn.setAttribute("aria-label", btn.title);
 }
 
 function paintHeading() {
@@ -2120,29 +2188,16 @@ function listenHeading() {
 }
 
 function resetPermissions() {
-  if (state.watchId != null && navigator.geolocation && typeof navigator.geolocation.clearWatch === "function") {
-    navigator.geolocation.clearWatch(state.watchId);
-  }
-  state.watchId = null;
-  headingListen = false;
-  state.heading = null;
-  state.rider = forgetInAppLocationGrant(state.rider);
-  if (state.rider.here) {
-    state.here = { lon: state.rider.here.lon, lat: state.rider.here.lat, source: state.rider.here.source, at: state.rider.here.at };
-  } else {
-    state.here = null;
-  }
-  state.userMoved = false;
+  // A page cannot reset browser or system permissions. Keep the last fix and
+  // explain where the rider can change those permissions instead.
   const help = document.getElementById("geo-help");
+  locationHelpWasShown = true;
   if (help) {
     help.hidden = false;
     help.open = true;
   }
-  paintHeading();
-  paintHereButton();
-  paintGeoAsk(true);
+  bumpSheet();
   document.getElementById("geo-panel")?.scrollIntoView({ block: "nearest" });
-  locate();
 }
 
 function askHeadingPermission() {
@@ -2158,14 +2213,20 @@ function askHeadingPermission() {
   listenHeading();
 }
 
-function applyHere(lon, lat, source, at, follow) {
-  if (state.selectingOrigin && source === "gps") return;
-  const stamp = source === "gps" ? Date.now() : at ?? Date.now();
+function applyHere(lon, lat, source, at, follow, accuracy) {
+  // While the rider picks a departure under the reticle, a late GPS sample
+  // must not replace the point being chosen.
+  if (state.selectingOrigin && source === "gps") return false;
+  const stamp = at ?? Date.now();
   const prev = state.here;
-  const next = acceptRiderFix(state.rider, { lon, lat, at: stamp, source: source || "gps" }, Date.now());
-  if (!next.here) return;
+  // A deliberate switch from a chosen departure to GPS may use a valid cached
+  // fix whose timestamp predates the manual choice. Keep its actual timestamp.
+  const store = source === "gps" && follow === true && state.rider.here?.source !== "gps"
+    ? emptyRiderStore() : state.rider;
+  const next = acceptRiderFix(store, { lon, lat, at: stamp, source: source || "gps", accuracy }, Date.now());
+  if (!next.here || next === store) return false;
   state.rider = next;
-  state.here = { lon: next.here.lon, lat: next.here.lat, source: next.here.source, at: next.here.at };
+  state.here = { ...next.here };
   const moved = !prev || haversineMeters(prev, next.here) > 15;
   const wantSnap = follow || !prev || moved || state.navigating;
   if (state.routeId && isCrowdProbeSource(next.here.source)) {
@@ -2189,6 +2250,7 @@ function applyHere(lon, lat, source, at, follow) {
     wantSnap,
   });
   const go = () => {
+    if (state.rider.here !== next.here || state.selectingOrigin) return;
     // follow === true means the rider asked (boot fix, Ici, GPS). A passive
     // watchPosition sample must never move a map the rider has panned or zoomed.
     const asked = follow === true;
@@ -2223,14 +2285,18 @@ function applyHere(lon, lat, source, at, follow) {
   if (city && city !== state.city) {
     state.visitId = "";
     paintCityButtons();
-    loadCity(city).then(go).catch(showLoadError);
-    return;
+    loadCity(city).then((loaded) => { if (loaded !== false) go(); }).catch(showLoadError);
+    return true;
   }
   go();
+  return true;
 }
 
 let toolStatusTimer = 0;
 let userAskedLocation = false;
+let locationRequest = 0;
+let locationDeadline = 0;
+let locationHelpWasShown = false;
 
 function toolStatus(message, kind) {
   const el = document.getElementById("tool-status");
@@ -2248,131 +2314,259 @@ function toolStatus(message, kind) {
   }, 3600);
 }
 
-function paintGeoAsk(needed) {
+const LOCATION_COPY = {
+  fr: {
+    locate: "Me localiser", recenter: "Me recentrer", retry: "Réessayer", searching: "Recherche de ta position…",
+    selectingTitle: "Choisis ton point de départ", ready: "Position reçue", manualTitle: "Départ choisi sur la carte", idleTitle: "D’où pars-tu ?",
+    selectingMessage: "Déplace la carte sous le repère, puis confirme ce point de départ.",
+    searchingMessage: "Autorise la position si ton navigateur te le demande. Tu peux annuler à tout moment.",
+    readyMessage: "Le point plein indique la position reçue de ton appareil.", accuracy: "Précision annoncée : environ",
+    manualMessage: "Le carré indique ton départ choisi. Tu peux calculer un trajet sans partager ta position.",
+    idleMessage: "Localise-toi en un geste, ou choisis un départ. Pour l’instant, les horaires partent du centre par défaut.",
+    keepGps: "Ta dernière position reçue reste affichée.", keepManual: "Ton départ choisi est conservé.", defaultMessage: "Le centre par défaut n’est pas ta position.",
+    change: "Changer le départ", choose: "Choisir sur la carte", confirm: "Confirmer ce point de départ", retryLocation: "Réessayer la localisation",
+    cancel: "Annuler la recherche", cancelPick: "Annuler le choix", confirmHint: "Utiliser le point sous le repère comme départ", locateHint: "Recevoir la position de ton appareil",
+    panelLabel: "Ton point de départ", helpLabel: "Aide pour autoriser la localisation", helpSummary: "J’ai déjà autorisé, mais ça ne marche pas",
+    helpHtml: `<ol><li>Dans les réglages de ce site, vérifie que la <strong>localisation est autorisée</strong>.</li><li>Sur Mac : <strong>Réglages Système → Confidentialité et sécurité → Service de localisation</strong>. Autorise aussi l’application qui ouvre cette page : ton navigateur, ChatGPT ou Codex, selon celle que tu utilises.</li><li>Active le Wi-Fi : un ordinateur peut s’en servir pour déterminer sa position. Reviens ici et touche <strong>Réessayer</strong>.</li></ol><p>Si le navigateur intégré ne transmet toujours aucune position, ouvre la même adresse dans Safari ou Chrome. Tu peux aussi choisir ton départ sur la carte sans autoriser la localisation.</p>`,
+    insecure: ["La connexion doit être sécurisée", "Ouvre Rive en HTTPS pour partager ta position. Tu peux aussi choisir ton départ sur la carte."],
+    unsupported: ["Ce navigateur ne fournit pas de position", "Ouvre Rive dans Safari ou Chrome, ou choisis ton départ sur la carte."],
+    denied: ["La localisation est bloquée", "Autorise la position pour ce site, puis vérifie le service de localisation de ton appareil pour l’application qui ouvre cette page."],
+    timeout: ["La position prend trop de temps", "Aucune position reçue à temps. Active le Wi-Fi et le service de localisation, puis réessaie ou choisis ton départ."],
+    unavailable: ["Ton appareil ne transmet pas de position", "Même après avoir autorisé le site, le navigateur peut ne recevoir aucune position. Vérifie le Wi-Fi et le service de localisation, ou choisis ton départ."],
+  },
+  en: {
+    locate: "Locate me", recenter: "Recenter on me", retry: "Try again", searching: "Finding your location…",
+    selectingTitle: "Choose your starting point", ready: "Location received", manualTitle: "Starting point chosen on the map", idleTitle: "Where are you starting?",
+    selectingMessage: "Move the map beneath the crosshair, then confirm your starting point.",
+    searchingMessage: "Allow location access if your browser asks. You can cancel at any time.",
+    readyMessage: "The filled dot shows the location received from your device.", accuracy: "Reported accuracy: about",
+    manualMessage: "The square marks your chosen starting point. You can plan a trip without sharing your location.",
+    idleMessage: "Find your location in one tap, or choose a starting point. For now, departures use the default map centre.",
+    keepGps: "Your last received location stays on the map.", keepManual: "Your chosen starting point is kept.", defaultMessage: "The default centre is not your location.",
+    change: "Change starting point", choose: "Choose on the map", confirm: "Confirm this starting point", retryLocation: "Try location again",
+    cancel: "Cancel search", cancelPick: "Cancel selection", confirmHint: "Use the point beneath the crosshair as your starting point", locateHint: "Get the location from your device",
+    panelLabel: "Your starting point", helpLabel: "Help with location permissions", helpSummary: "I already allowed access. Why isn’t it working?",
+    helpHtml: `<ol><li>In this site’s settings, check that <strong>location access is allowed</strong>.</li><li>On Mac: <strong>System Settings → Privacy & Security → Location Services</strong>. Also allow the app displaying this page: your browser, ChatGPT or Codex, whichever you are using.</li><li>Turn on Wi-Fi: your computer can use it to determine its location. Return here and tap <strong>Try again</strong>.</li></ol><p>If the embedded browser still receives no location, open the same address in Safari or Chrome. You can also choose a starting point on the map without allowing location access.</p>`,
+    insecure: ["A secure connection is needed", "Open Rive over HTTPS to share your location, or choose your starting point on the map."],
+    unsupported: ["This browser does not provide location", "Open Rive in Safari or Chrome, or choose your starting point on the map."],
+    denied: ["Location access is blocked", "Allow location access for this site, then check your device’s Location Services for the app displaying this page."],
+    timeout: ["Finding your location took too long", "No location was received in time. Turn on Wi-Fi and Location Services, then try again or choose your starting point."],
+    unavailable: ["Your device is not providing a location", "Even after you allow access, the browser may receive no location. Check Wi-Fi and Location Services, or choose your starting point."],
+  },
+};
+
+function locationCopy() {
+  return LOCATION_COPY[String(state.locale || "fr").startsWith("fr") ? "fr" : "en"];
+}
+
+function locationFailure(error) {
+  const copy = locationCopy();
+  const reason = window.isSecureContext === false ? "insecure" : !navigator.geolocation ? "unsupported"
+    : Number(error?.code) === 1 ? "denied" : Number(error?.code) === 3 ? "timeout" : "unavailable";
+  const [title, message] = copy[reason];
+  return { title, message };
+}
+
+function paintGeoAsk() {
+  const copy = locationCopy();
   const el = document.getElementById("geo-ask");
-  const gps = state.here && state.here.source === "gps";
-  const manual = state.here && state.here.source === "manual";
-  const picking = Boolean(state.selectingOrigin);
-  if (el) {
-    el.hidden = Boolean(gps) && needed !== true && !picking;
-    if (!el.hidden) {
-      el.textContent = picking
-        ? "Confirmer ce point de départ"
-        : navigator.geolocation
-          ? "Me localiser"
-          : "Pas de géolocalisation ici";
-      el.title = picking
-        ? "Utiliser le point sous le repère comme départ"
-        : navigator.geolocation
-          ? "Recevoir la position de ton appareil"
-          : "Cet appareil ne fournit pas de position.";
-    }
-  }
+  const gps = state.here?.source === "gps";
+  const manual = state.here?.source === "manual";
+  const searching = state.geoStatus === "locating";
+  const failure = state.geoError ? locationFailure(state.geoError) : null;
   const title = document.getElementById("geo-title");
   const message = document.getElementById("geo-message");
   const locateButton = document.getElementById("geo-locate");
+  const cancelButton = document.getElementById("geo-cancel");
   const mapCancel = document.getElementById("geo-map-cancel");
+  const help = document.getElementById("geo-help");
+  const accuracy = Number.isFinite(state.here?.accuracy) ? ` ${copy.accuracy} ${formatMeters(state.here.accuracy)}.` : "";
+  if (title) title.textContent = state.selectingOrigin ? copy.selectingTitle
+    : searching ? copy.searching : failure ? failure.title : gps ? copy.ready : manual ? copy.manualTitle : copy.idleTitle;
+  if (message) message.textContent = state.selectingOrigin ? copy.selectingMessage
+    : searching ? copy.searchingMessage
+      : failure ? `${failure.message} ${gps ? copy.keepGps : manual ? copy.keepManual : copy.defaultMessage}`
+        : gps ? `${copy.readyMessage}${accuracy}` : manual ? copy.manualMessage : copy.idleMessage;
+  if (locateButton) {
+    locateButton.textContent = searching ? copy.searching : failure ? copy.retry : gps ? copy.recenter : copy.locate;
+    locateButton.disabled = searching;
+  }
+  if (cancelButton) { cancelButton.hidden = !searching; cancelButton.textContent = copy.cancel; }
+  if (mapCancel) {
+    mapCancel.hidden = !state.selectingOrigin && !(searching && state.sheetOpen === false);
+    mapCancel.textContent = state.selectingOrigin ? copy.cancelPick : copy.cancel;
+  }
   const manualButton = document.getElementById("geo-manual");
-  if (title) {
-    title.textContent = picking
-      ? "Choisis ton point de départ"
-      : gps
-        ? "Position reçue"
-        : manual
-          ? "Départ choisi sur la carte"
-          : "D’où pars-tu ?";
+  if (manualButton) manualButton.textContent = manual ? copy.change : copy.choose;
+  if (help) {
+    help.hidden = !failure && !locationHelpWasShown;
+    if (failure) locationHelpWasShown = true;
   }
-  if (message) {
-    message.textContent = picking
-      ? "Déplace la carte sous le repère, puis confirme ce point de départ."
-      : gps
-        ? "Le point plein indique la position reçue de ton appareil."
-        : manual
-          ? "Le carré indique ton départ choisi. Tu peux calculer un trajet sans partager ta position."
-          : "Localise-toi en un geste, ou choisis un départ. Le centre par défaut n’est pas ta position.";
+  const summary = document.getElementById("geo-help-summary");
+  if (summary) summary.textContent = copy.helpSummary;
+  const helpContent = document.getElementById("geo-help-content");
+  if (helpContent && helpContent.dataset.locale !== state.locale) {
+    helpContent.innerHTML = copy.helpHtml;
+    helpContent.dataset.locale = state.locale;
   }
-  if (locateButton) locateButton.textContent = gps ? "Me recentrer" : "Me localiser";
-  if (manualButton) manualButton.textContent = manual ? "Changer le départ" : "Choisir sur la carte";
-  if (mapCancel) mapCancel.hidden = !picking;
+  document.getElementById("geo-panel")?.setAttribute("aria-label", copy.panelLabel);
+  const permissionsButton = document.getElementById("perms");
+  if (permissionsButton) {
+    permissionsButton.setAttribute("aria-label", copy.helpLabel);
+    permissionsButton.title = copy.helpLabel;
+  }
+  if (el) {
+    el.hidden = state.sheetOpen !== false && !state.selectingOrigin;
+    el.disabled = searching;
+    el.textContent = state.selectingOrigin ? copy.confirm : searching ? copy.searching : failure ? copy.retryLocation : gps ? copy.recenter : copy.locate;
+    el.title = state.selectingOrigin ? copy.confirmHint : copy.locateHint;
+  }
+  paintHereButton();
+  requestDraw();
+}
+
+function cancelLocation() {
+  locationRequest += 1;
+  clearTimeout(locationDeadline);
+  locationDeadline = 0;
+  if (state.watchId != null && navigator.geolocation?.clearWatch) navigator.geolocation.clearWatch(state.watchId);
+  state.watchId = null;
+  userAskedLocation = false;
+  if (state.geoStatus === "locating") state.geoStatus = state.here?.source === "gps" ? "ready" : "idle";
 }
 
 function chooseMapOrigin() {
+  cancelLocation();
   state.selectingOrigin = true;
+  state.geoError = null;
   cancelFlight();
   minimizeSheet();
-  paintGeoAsk(true);
-  requestDraw();
+  paintGeoAsk();
   document.getElementById("geo-ask")?.focus();
 }
 
 function confirmMapOrigin() {
-  const { lon, lat } = state.camera;
+  // Pitch shifts the camera's geographic centre away from the visual reticle.
+  const { lon, lat } = screenToWorld(innerWidth / 2, innerHeight / 2, state.camera, innerWidth, innerHeight);
   state.selectingOrigin = false;
+  state.rider = forgetInAppLocationGrant(state.rider);
+  state.geoStatus = "manual";
+  state.geoError = null;
   state.cityLocked = false;
   state.visitId = "";
-  applyHere(lon, lat, "manual", Date.now(), true);
+  applyHere(lon, lat, "manual", Date.now(), false);
   paintGeoAsk();
   bumpSheet();
-  document.getElementById("dest")?.focus();
 }
 
 function locateFromButton() {
   state.selectingOrigin = false;
-  userAskedLocation = true;
-  state.userMoved = false;
-  paintHereButton();
-  paintPanCityHint();
-  toolStatus(state.here && state.here.source === "gps" ? "Recentrage…" : "Recherche de ta position…");
-  if (state.here && state.here.source === "gps") {
+  if (state.here?.source === "gps") {
+    state.userMoved = false;
     flyTo({ lon: state.here.lon, lat: state.here.lat, zoom: Math.max(state.camera.zoom, 14.2) });
   }
+  paintHereButton();
+  paintPanCityHint();
   locate();
 }
 
 function locate() {
+  if (state.geoStatus === "locating") return;
+  cancelLocation();
+  const request = locationRequest;
   state.selectingOrigin = false;
-  const fallback = () => {
-    paintGeoAsk(true);
-    if (userAskedLocation) {
-      userAskedLocation = false;
-      toolStatus(
-        navigator.geolocation ? "Position refusée. Origine: centre-ville." : "Pas de position sur cet appareil.",
-        "err",
-      );
-    }
-    if (state.here && state.here.source === "gps") return;
-    const center = state.atlas
-      ? { lon: state.atlas.meta.center[0], lat: state.atlas.meta.center[1] }
-      : state.camera;
-    applyHere(center.lon, center.lat, "map");
+  state.geoStatus = "locating";
+  state.geoError = null;
+  userAskedLocation = true;
+  paintGeoAsk();
+  const current = () => request === locationRequest;
+  const fail = (error) => {
+    if (!current()) return;
+    clearTimeout(locationDeadline);
+    locationDeadline = 0;
+    state.geoStatus = "error";
+    state.geoError = error || { code: 2 };
+    userAskedLocation = false;
+    paintGeoAsk();
+    toolStatus(locationFailure(state.geoError).title, "err");
+    locationRequest += 1;
   };
-  if (!navigator.geolocation) {
-    fallback();
+  if (window.isSecureContext === false || !navigator.geolocation) {
+    fail({ code: 2 });
     return;
   }
-  askHeadingPermission();
-  const onFix = (pos, follow) => {
-    paintGeoAsk(false);
-    if (userAskedLocation) {
-      userAskedLocation = false;
-      toolStatus("Position trouvée.", "ok");
+  const acceptFix = (pos, follow) => {
+    if (!current()) return false;
+    const coords = pos?.coords;
+    if (!coords || !Number.isFinite(coords.longitude) || Math.abs(coords.longitude) > 180 ||
+        !Number.isFinite(coords.latitude) || Math.abs(coords.latitude) > 90) return false;
+    const at = Number.isFinite(pos.timestamp) ? pos.timestamp : Date.now();
+    if (Date.now() - at > 120000 || at > Date.now() + 60000 ||
+        (state.here?.source === "gps" && at < state.here.at)) return false;
+    if (follow) {
+      state.cityLocked = false;
+      state.visitId = "";
+      state.userMoved = false;
     }
-    applyHere(pos.coords.longitude, pos.coords.latitude, "gps", pos.timestamp || Date.now(), follow);
+    if (!applyHere(coords.longitude, coords.latitude, "gps", at, follow, coords.accuracy)) return false;
+    clearTimeout(locationDeadline);
+    locationDeadline = 0;
+    state.geoStatus = "ready";
+    state.geoError = null;
     applyHeading(pos.coords);
+    paintGeoAsk();
+    if (userAskedLocation) toolStatus(locationCopy().ready, "ok");
+    userAskedLocation = false;
+    return true;
   };
-  navigator.geolocation.getCurrentPosition((pos) => onFix(pos, true), fallback, {
-    enableHighAccuracy: true,
-    maximumAge: 0,
-    timeout: 20000,
-  });
-  if (state.watchId == null && typeof navigator.geolocation.watchPosition === "function") {
-    state.watchId = navigator.geolocation.watchPosition((pos) => onFix(pos, false), () => paintGeoAsk(true), {
-      enableHighAccuracy: true,
-      maximumAge: 3000,
-      timeout: 20000,
-    });
-  }
+  const startWatch = () => {
+    if (!current() || state.watchId != null || typeof navigator.geolocation.watchPosition !== "function") return;
+    try {
+      const watchId = navigator.geolocation.watchPosition(
+        (pos) => { acceptFix(pos, false); },
+        (error) => {
+          if (!current()) return;
+          // Keep the last real fix visible and stop a failing watch. A retry is
+          // always deliberate; permission failures must not loop in a WebView.
+          if (state.watchId != null) navigator.geolocation.clearWatch(state.watchId);
+          state.watchId = null;
+          fail(error);
+        },
+        { enableHighAccuracy: true, maximumAge: 10000, timeout: 20000 },
+      );
+      if (current()) state.watchId = watchId;
+      else navigator.geolocation.clearWatch(watchId);
+    } catch (error) { fail(error); }
+  };
+  const attempt = (precise) => {
+    let settled = false;
+    const failedAttempt = (error) => {
+      if (settled || !current()) return;
+      settled = true;
+      clearTimeout(locationDeadline);
+      if (!precise && Number(error?.code) !== 1) attempt(true);
+      else fail(error);
+    };
+    // Native location may wait indefinitely for a host permission dialog. This
+    // deadline also bounds WebViews that ignore the API timeout option.
+    locationDeadline = setTimeout(() => failedAttempt({ code: 3 }), precise ? 16000 : 11000);
+    try {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          if (settled || !current()) return;
+          if (!acceptFix(pos, true)) { failedAttempt({ code: 2 }); return; }
+          settled = true;
+          startWatch();
+        },
+        failedAttempt,
+        { enableHighAccuracy: precise, maximumAge: precise ? 0 : 60000, timeout: precise ? 15000 : 10000 },
+      );
+    } catch (error) { failedAttempt(error); }
+  };
+  attempt(false);
 }
+
+window.addEventListener("pagehide", cancelLocation);
 
 function safeColor(value, fallback = "#0071e3") {
   const color = typeof value === "string" ? value : "";
@@ -2380,8 +2574,10 @@ function safeColor(value, fallback = "#0071e3") {
 }
 
 function tripMix(trip) {
-  if (trip.mix) return trip.mix;
-  return mixLabel(trip.legs || []);
+  const label = trip.mix || mixLabel(trip.legs || []);
+  if (atlasText(true, false)) return label;
+  const words = { marche: "walk", vélo: "bike", auto: "car", métro: "metro", traversier: "ferry", câble: "cable car", funiculaire: "funicular" };
+  return label.split(" + ").map((word) => words[word] || word).join(" + ");
 }
 
 function tripLine(trip) {
@@ -2417,11 +2613,11 @@ function fitTrip(trip) {
   });
 }
 
-function renderTrips() {
+function renderTrips(quiet = false) {
   const box = document.getElementById("trips");
   if (!box) return;
   const destHits = document.getElementById("dest-hits");
-  if (destHits) destHits.innerHTML = "";
+  if (destHits && !quiet) destHits.innerHTML = "";
   if (!state.trips.length) {
     box.hidden = true;
     box.innerHTML = "";
@@ -2430,16 +2626,16 @@ function renderTrips() {
   box.hidden = false;
   const destName = state.dest?.name || "";
   box.innerHTML =
-    `<h2>Vers ${escapeHtml(destName)}</h2>` +
+    `<h2>${atlasText("Vers", "To")} ${escapeHtml(destName)}</h2><p class="lead">${atlasText("Départ depuis", "Starting from")} ${originDescription()}.</p>` +
     state.trips
       .map((trip, i) => {
         const on = i === state.tripIndex ? " on" : "";
         const mix = tripMix(trip);
-        const gap = trip.gap > 0 ? `+${trip.gap} min de plus` : "Le plus vite";
+        const gap = trip.gap > 0 ? `+${trip.gap} ${atlasText("min de plus", "min longer")}` : atlasText("Le plus vite", "Fastest");
         const legs = (trip.legs || [])
           .map((leg) => {
             if (leg.kind === "walk" || leg.kind === "bike" || leg.kind === "road") {
-              const tag = leg.kind === "bike" ? "vélo" : leg.kind === "road" ? "auto" : "à pied";
+              const tag = leg.kind === "bike" ? atlasText("vélo", "bike") : leg.kind === "road" ? atlasText("auto", "car") : atlasText("à pied", "walk");
               return `<div class="row"><span class="badge access">${tag}</span><div>${escapeHtml(leg.label || "")}</div></div>`;
             }
             return `<div class="row">
@@ -2457,7 +2653,7 @@ function renderTrips() {
             <div class="gap">${escapeHtml(gap)}</div>
             ${legs}
           </button>
-          ${i === state.tripIndex ? `<button type="button" class="go" data-go="${i}">Aller</button>` : ""}
+          ${i === state.tripIndex ? atlasText(`<button type="button" class="go" data-go="${i}">Aller</button>`, `<button type="button" class="go" data-go="${i}">Go</button>`) : ""}
         </article>`;
       })
       .join("");
@@ -2516,7 +2712,7 @@ function paintNav() {
   nav.hidden = false;
   nav.innerHTML = `<div class="nav-step">${escapeHtml(step)}</div>
     <div class="nav-meta">${trip.minutes} min · ${escapeHtml(tripMix(trip))}</div>
-    <button type="button" id="nav-stop">Fin</button>`;
+    <button type="button" id="nav-stop">${atlasText("Fin", "End")}</button>`;
   const stop = document.getElementById("nav-stop");
   if (stop) stop.onclick = () => stopTrip();
 }
@@ -2529,7 +2725,10 @@ function startTrip(index) {
   const transit = (trip.legs || []).find((leg) => leg.kind === "transit" && leg.routeId);
   if (transit) state.routeId = transit.routeId;
   setSheetOpen(false);
-  locate();
+  if (state.here?.source === "gps") {
+    if (state.watchId == null) locate();
+    askHeadingPermission();
+  }
   paintNav();
   pulseFromTrip(trip);
   requestDraw();
@@ -2615,23 +2814,23 @@ function openPlan(destStop, quiet) {
   const active = activeServiceIndexes(state.atlas, new Date());
   const itineraries = planFromHere(from, destStop, now, active);
   const destHits = document.getElementById("dest-hits");
-  if (destHits) destHits.innerHTML = "";
+  if (destHits && !quiet) destHits.innerHTML = "";
   const keep = state.tripIndex;
   state.trips = itineraries;
   state.tripIndex = itineraries.length ? Math.min(keep, itineraries.length - 1) : 0;
-  if (!state.navigating) {
+  if (!state.navigating && !quiet) {
     if (itineraries[0]) fitTrip(itineraries[0]);
     else {
       flyTo({ lon: destStop.lon, lat: destStop.lat, zoom: Math.max(state.camera.zoom, 13.6) });
     }
   }
-  renderTrips();
+  renderTrips(quiet);
   if (!itineraries.length) {
     const box = document.getElementById("trips");
     if (box) {
       box.hidden = false;
-      box.innerHTML = `<h2>Vers ${escapeHtml(destStop.name)}</h2>
-        <p class="lead">Pas de trajet à ${formatClock(now)} depuis ici. Choisis une ligne ou un horaire ailleurs.</p>`;
+      box.innerHTML = `<h2>${atlasText("Vers", "To")} ${escapeHtml(destStop.name)}</h2>
+        <p class="lead">${atlasText(`Pas de trajet à ${formatClock(now)} depuis ${originDescription()}. Choisis une ligne ou un horaire ailleurs.`, `No trip at ${formatClock(now)} from ${originDescription()}. Choose a route or check another stop’s schedule.`)}</p>`;
     }
   }
   if (!quiet) bumpSheet();
@@ -2651,11 +2850,11 @@ function openStop(stop) {
   board.hidden = false;
   const watchHref = watchUrl(stop, rows);
   board.innerHTML = `<h2>${escapeHtml(stop.name)}</h2>
-    <p class="lead">Passages à ${formatClock(now)}. Tu n'as pas besoin d'être sur le quai.</p>
+    <p class="lead">${atlasText(`Passages à ${formatClock(now)}. Tu n'as pas besoin d'être sur le quai.`, `Departures at ${formatClock(now)}. You do not need to be at the stop.`)}</p>
     ${notice}
     ${
       rows.length === 0
-        ? `<p class="lead">Aucun passage restant aujourd'hui.</p>`
+        ? `<p class="lead">${atlasText("Aucun passage restant aujourd'hui.", "No more departures today.")}</p>`
         : rows
             .map(
               (row) => `<div class="row">
@@ -2668,7 +2867,7 @@ function openStop(stop) {
             )
             .join("")
     }
-    <p class="lead"><a id="watch-open" href="${watchHref}">Cadran Watch</a></p>`;
+    <p class="lead"><a id="watch-open" href="${watchHref}">${atlasText("Cadran Watch", "Watch face")}</a></p>`;
   document.getElementById("hits").innerHTML = "";
   const footerWatch = document.getElementById("watch-link");
   if (footerWatch) footerWatch.setAttribute("href", watchHref);
@@ -3255,17 +3454,20 @@ function draw() {
     }
   }
   ctx.globalAlpha = 1;
-  if (state.here) {
+  if (state.here && (state.here.source === "gps" || state.here.source === "manual")) {
     const [hx, hy] = worldToScreen(state.here.lon, state.here.lat, cam, w, h);
-    ctx.fillStyle = sodium;
-    if (state.here.source === "manual") {
+    if (state.here.source === "gps") {
+      ctx.fillStyle = sodium;
+      ctx.beginPath();
+      ctx.arc(hx, hy, 7, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.strokeStyle = theme.dot;
+      ctx.lineWidth = 2;
+      ctx.stroke();
+    } else {
       ctx.strokeStyle = sodium;
       ctx.lineWidth = 3;
       ctx.strokeRect(hx - 6, hy - 6, 12, 12);
-    } else {
-      ctx.beginPath();
-      ctx.arc(hx, hy, 5, 0, Math.PI * 2);
-      ctx.fill();
     }
     if (state.here.source === "gps" && state.heading && Number.isFinite(state.heading.degrees)) {
       const rad = ((state.heading.degrees - 90) * Math.PI) / 180;
@@ -3282,10 +3484,8 @@ function draw() {
     ctx.lineWidth = 3;
     ctx.beginPath();
     ctx.arc(w / 2, h / 2, 12, 0, Math.PI * 2);
-    ctx.moveTo(w / 2 - 20, h / 2);
-    ctx.lineTo(w / 2 + 20, h / 2);
-    ctx.moveTo(w / 2, h / 2 - 20);
-    ctx.lineTo(w / 2, h / 2 + 20);
+    ctx.moveTo(w / 2 - 20, h / 2); ctx.lineTo(w / 2 + 20, h / 2);
+    ctx.moveTo(w / 2, h / 2 - 20); ctx.lineTo(w / 2, h / 2 + 20);
     ctx.stroke();
   }
   if (state.fusedVehicle && Number.isFinite(state.fusedVehicle.lon)) {
@@ -3424,7 +3624,14 @@ async function loadWeather() {
 function paintWx() {
   const el = document.getElementById("wx");
   if (!el) return;
-  const line = formatShownLine(shownConditions(state.weather));
+  const shown = shownConditions(state.weather);
+  const line = atlasText(true, false) ? formatShownLine(shown) : [
+    shown.precip ? `rain ${shown.precip}` : "",
+    shown.road ? `${shown.road === "glissante" ? "slippery" : "wet"} roads` : "",
+    shown.wind ? `wind ${shown.wind}` : "",
+    shown.uv ? `UV ${shown.uv}` : "",
+    shown.aqi ? `AQI ${shown.aqi}` : "",
+  ].filter(Boolean).join("  ·  ");
   if (!line) {
     el.hidden = true;
     el.textContent = "";
@@ -3824,22 +4031,17 @@ for (const ev of ["gesturestart", "gesturechange", "gestureend"]) {
 fetchJsonLimited(new URL("l10n/rive.json", import.meta.url), {}, 512 * 1024)
   .then((tables) => {
     const wanted = [...(navigator.languages || []), navigator.language || "fr"];
-    const keys = Object.keys(tables);
-    let loc = "fr";
-    for (const raw of wanted) {
-      const tag = String(raw || "").toLowerCase();
-      if (keys.includes(tag)) {
-        loc = tag;
-        break;
-      }
-      const base = tag.split("-")[0];
-      const hit = keys.find((k) => k === base || k.startsWith(base + "-"));
-      if (hit) {
-        loc = hit;
-        break;
-      }
-    }
-    const t = tables[loc] || tables.fr || tables.en;
+    const loc = chooseAtlasLocale(wanted, Object.keys(tables));
+    const t = atlasLocaleTable(tables, loc);
+    state.locale = loc;
+    state.messages = t;
+    paintAtlasLabels(t);
+    setSheetOpen(state.sheetOpen);
+    applyTheme(state.theme);
+    renderNearby();
+    renderBikes();
+    document.documentElement.lang = loc;
+    paintGeoAsk();
     const destTitle = document.getElementById("dest-title");
     const destLead = document.getElementById("dest-lead");
     const elseTitle = document.getElementById("else-title");
@@ -3868,53 +4070,38 @@ if (loadCityBtn) {
   };
 }
 document.getElementById("here").onclick = locateFromButton;
-const geoLocate = document.getElementById("geo-locate");
-if (geoLocate) geoLocate.onclick = locateFromButton;
+document.getElementById("geo-locate").onclick = locateFromButton;
 document.getElementById("geo-ask").onclick = () => {
-  if (state.selectingOrigin) {
-    confirmMapOrigin();
-    return;
-  }
-  locateFromButton();
+  if (state.selectingOrigin) confirmMapOrigin();
+  else locateFromButton();
 };
-const geoManual = document.getElementById("geo-manual");
-if (geoManual) geoManual.onclick = chooseMapOrigin;
-const geoCancel = document.getElementById("geo-cancel");
-if (geoCancel) {
-  geoCancel.onclick = () => {
-    state.selectingOrigin = false;
-    paintGeoAsk();
-  };
-}
-const geoMapCancel = document.getElementById("geo-map-cancel");
-if (geoMapCancel) {
-  geoMapCancel.onclick = () => {
-    state.selectingOrigin = false;
-    paintGeoAsk();
-    bumpSheet();
-    requestDraw();
-  };
-}
+document.getElementById("geo-manual").onclick = chooseMapOrigin;
+document.getElementById("geo-cancel").onclick = () => {
+  cancelLocation();
+  state.geoError = null;
+  paintGeoAsk();
+};
+document.getElementById("geo-map-cancel").onclick = () => {
+  cancelLocation();
+  state.selectingOrigin = false;
+  paintGeoAsk();
+  bumpSheet();
+  requestDraw();
+};
 const perms = document.getElementById("perms");
-if (perms) {
-  perms.onclick = () => {
-    userAskedLocation = true;
-    toolStatus("Position et boussole redemandées…");
-    resetPermissions();
-  };
-}
+if (perms) perms.onclick = resetPermissions;
 document.getElementById("pitch").onclick = () => {
   const on = (state.camera.pitch || 0) > 0.2;
   setPitch(on ? 0 : 0.72);
   if (!on && state.camera.zoom < 13.2) state.camera.zoom = 13.4;
-  toolStatus(on ? "Vue à plat." : "Vue 3D: hauteurs et souterrain.");
+  toolStatus(on ? atlasText("Vue à plat.", "Flat map view.") : atlasText("Vue 3D : hauteurs et souterrain.", "3D view: heights and underground routes."));
   scheduleBuildings();
   requestDraw();
 };
 document.getElementById("refresh").onclick = () => refreshFeeds(true);
 document.getElementById("theme").onclick = () => {
   applyTheme(state.theme === "night" ? "day" : "night");
-  toolStatus(state.theme === "night" ? "Thème nuit." : "Thème jour.");
+  toolStatus(state.theme === "night" ? atlasText("Thème nuit.", "Night theme.") : atlasText("Thème jour.", "Day theme."));
 };
 document.getElementById("fold").onclick = () => {
   if (state.sheetOpen) minimizeSheet();
@@ -3922,8 +4109,13 @@ document.getElementById("fold").onclick = () => {
 };
 const sheetBody = document.getElementById("sheet-body");
 if (sheetBody) {
-  sheetBody.addEventListener("pointerdown", bumpSheet);
-  sheetBody.addEventListener("focusin", bumpSheet);
+  // Expanding on pointerdown can move a button before pointerup and swallow
+  // the first click. Only text-entry focus needs the taller sheet.
+  sheetBody.addEventListener("pointerdown", armSheetIdle);
+  sheetBody.addEventListener("focusin", (event) => {
+    if (event.target?.matches?.("input, textarea, select")) bumpSheet();
+    else armSheetIdle();
+  });
   sheetBody.addEventListener("scroll", armSheetIdle, { passive: true });
 }
 document.getElementById("dest").addEventListener("focus", bumpSheet);
@@ -3944,6 +4136,47 @@ function scheduleSearch(render) {
     render();
   }, 90);
 }
+
+function bindSearchKeys(inputId, resultsId, render) {
+  const input = document.getElementById(inputId);
+  const results = document.getElementById(resultsId);
+  if (!input || !results) return;
+  const dismiss = () => {
+    clearTimeout(searchTick);
+    searchTick = 0;
+    results.innerHTML = "";
+  };
+  input.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      dismiss();
+    } else if (event.key === "ArrowDown" || event.key === "ArrowUp") {
+      render();
+      const buttons = results.querySelectorAll("button");
+      const target = event.key === "ArrowDown" ? buttons[0] : buttons[buttons.length - 1];
+      if (target) { event.preventDefault(); target.focus(); }
+    }
+  });
+  results.addEventListener("keydown", (event) => {
+    if (event.key === "Escape") {
+      event.preventDefault();
+      dismiss();
+      input.focus();
+      return;
+    }
+    if (event.key !== "ArrowDown" && event.key !== "ArrowUp") return;
+    const buttons = [...results.querySelectorAll("button")];
+    const index = buttons.indexOf(document.activeElement);
+    if (index < 0) return;
+    event.preventDefault();
+    if (event.key === "ArrowUp" && index === 0) input.focus();
+    else buttons[Math.max(0, Math.min(buttons.length - 1, index + (event.key === "ArrowDown" ? 1 : -1)))].focus();
+  });
+}
+
+bindSearchKeys("q", "hits", renderHits);
+bindSearchKeys("dest", "dest-hits", renderDestHits);
+
 document.getElementById("q").addEventListener("input", (e) => {
   state.query = e.target.value;
   scheduleSearch(renderHits);
@@ -3968,9 +4201,13 @@ document.getElementById("dest").addEventListener("keydown", (e) => {
 
 function switchCity(city, visit) {
   if (typeof city !== "string" || city.length > 64 || !/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(city)) return;
+  cancelLocation();
+  state.selectingOrigin = false;
+  state.geoError = null;
   state.cityLocked = true;
   state.visitId = visit && typeof visit.id === "string" ? visit.id : "";
   paintCityButtons();
+  paintGeoAsk();
   state.stop = null;
   document.getElementById("board").hidden = true;
   document.getElementById("q").value = "";
@@ -3999,7 +4236,7 @@ function switchCity(city, visit) {
     applyVisit(visit);
     return;
   }
-  loadCity(city).then(() => applyVisit(visit)).catch(showLoadError);
+  loadCity(city).then((loaded) => { if (loaded !== false) applyVisit(visit); }).catch(showLoadError);
 }
 
 let resizeTick = 0;
@@ -4030,13 +4267,14 @@ paintHeading();
 paintHereButton();
 paintGeoAsk(true);
 loadCity(bootCity)
-  .then(() => {
+  .then((loaded) => {
+    if (loaded === false) return;
     if (bootVisit) applyVisit(bootVisit);
     if (bootStop && state.atlas) {
       const hit = state.atlas.stops.find((s) => s.id === bootStop);
       if (hit) openStop(hit);
     }
-    locate();
+    paintGeoAsk();
   })
   .catch(showLoadError);
 loadCityIndex();

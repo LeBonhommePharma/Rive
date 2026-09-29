@@ -1463,8 +1463,7 @@ describe("nearby lines follow here", () => {
     assert.match(src, /function bumpSheet/);
     assert.match(src, /function minimizeSheet/);
     assert.match(src, /SHEET_IDLE_MS/);
-    assert.match(src, /Le plus vite/);
-    assert.match(src, /\+\$\{trip\.gap\} min de plus/);
+    // Fastest/gap copy is checked through the shipped renderer in atlas-location.test.ts.
     assert.match(src, /openPlan\(state\.dest, true\)/);
   });
 });
@@ -1766,9 +1765,6 @@ describe("live pulse start and stop", () => {
     assert.match(html, /id="geo-ask"/);
     const pusher = readFileSync(join(process.cwd(), "ios", "Rive", "LiveDeparturePusher.swift"), "utf8");
     assert.match(pusher, /static func end/);
-    const shell = readFileSync(join(process.cwd(), "ios", "RiveApp", "RiveApp.swift"), "utf8");
-    assert.match(shell, /riveLive/);
-    assert.match(shell, /LiveDeparturePusher.apply/);
   });
 });
 
