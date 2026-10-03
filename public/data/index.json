@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-10-03T11:44:26.591Z",
+  "builtAt": "2026-10-03T16:17:04.149Z",
   "cities": [
     {
       "city": "quebec",
@@ -100,14 +100,6 @@
           "attribution": "Horaires et parcours RTL Longueuil, données ouvertes.",
           "licenseUrl": "https://www.rtl-longueuil.qc.ca/donnees-ouvertes",
           "sourceUrl": "https://www.rtl-longueuil.qc.ca/transit/latestfeed/RTL.zip"
-        }
-      ],
-      "staleFeeds": [
-        {
-          "agency": "RTL",
-          "feed": "rtl",
-          "fetchedAt": "2026-10-03T05:17:28.373Z",
-          "reason": "download failed: curl exit 28 (timed out)"
         }
       ]
     },
