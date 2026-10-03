@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-10-02T12:33:23.897Z",
+  "builtAt": "2026-10-03T11:44:26.591Z",
   "cities": [
     {
       "city": "quebec",
@@ -10,7 +10,7 @@
       "timezone": "America/Montreal",
       "lang": "fr",
       "phone": "+1-418-627-2511",
-      "updated": "20261001",
+      "updated": "20261002",
       "start": "20260824",
       "end": "20261220",
       "version": "",
@@ -24,8 +24,8 @@
       "zoom": 12.4,
       "counts": {
         "routes": 263,
-        "stops": 5985,
-        "trips": 73168,
+        "stops": 5991,
+        "trips": 71657,
         "services": 33,
         "timetableStops": 5745
       },
@@ -72,7 +72,7 @@
       "counts": {
         "routes": 460,
         "stops": 14890,
-        "trips": 164513,
+        "trips": 164515,
         "services": 103,
         "timetableStops": 14820
       },
@@ -100,6 +100,14 @@
           "attribution": "Horaires et parcours RTL Longueuil, données ouvertes.",
           "licenseUrl": "https://www.rtl-longueuil.qc.ca/donnees-ouvertes",
           "sourceUrl": "https://www.rtl-longueuil.qc.ca/transit/latestfeed/RTL.zip"
+        }
+      ],
+      "staleFeeds": [
+        {
+          "agency": "RTL",
+          "feed": "rtl",
+          "fetchedAt": "2026-10-03T05:17:28.373Z",
+          "reason": "download failed: curl exit 28 (timed out)"
         }
       ]
     },
