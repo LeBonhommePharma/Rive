@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-10-10T12:30:46.790Z",
+  "builtAt": "2026-10-11T05:50:51.886Z",
   "cities": [
     {
       "city": "quebec",
@@ -178,6 +178,14 @@
           "attribution": "Horaires et parcours STTR Trois-Rivières, données ouvertes.",
           "licenseUrl": "https://www.donneesquebec.ca/recherche/dataset/gtsf",
           "sourceUrl": "https://sttr.qc.ca/app/uploads/2026/08/sttr_aut26.zip"
+        }
+      ],
+      "staleFeeds": [
+        {
+          "agency": "STTR",
+          "feed": "sttr",
+          "fetchedAt": "2026-10-10T21:43:32.276Z",
+          "reason": "download failed: curl exit 28 (timed out)"
         }
       ]
     }
