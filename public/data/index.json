@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-10-22T11:52:59.522Z",
+  "builtAt": "2026-10-23T04:50:18.364Z",
   "cities": [
     {
       "city": "quebec",
@@ -10,7 +10,7 @@
       "timezone": "America/Montreal",
       "lang": "fr",
       "phone": "+1-418-627-2511",
-      "updated": "20261021",
+      "updated": "20261022",
       "start": "20260824",
       "end": "20261220",
       "version": "",
@@ -25,7 +25,7 @@
       "counts": {
         "routes": 263,
         "stops": 5979,
-        "trips": 74741,
+        "trips": 74747,
         "services": 33,
         "timetableStops": 5745
       },
@@ -103,12 +103,6 @@
         }
       ],
       "staleFeeds": [
-        {
-          "agency": "STM",
-          "feed": "stm",
-          "fetchedAt": "2026-10-21T11:47:07.426Z",
-          "reason": "downloaded archive rejected: Command failed: unzip -Z1 .cache/gtfs/stm.zip.part"
-        },
         {
           "agency": "RTL",
           "feed": "rtl",
