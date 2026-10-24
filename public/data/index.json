@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-10-23T04:50:18.364Z",
+  "builtAt": "2026-10-24T11:00:50.757Z",
   "cities": [
     {
       "city": "quebec",
@@ -10,7 +10,7 @@
       "timezone": "America/Montreal",
       "lang": "fr",
       "phone": "+1-418-627-2511",
-      "updated": "20261022",
+      "updated": "20261023",
       "start": "20260824",
       "end": "20261220",
       "version": "",
@@ -24,8 +24,8 @@
       "zoom": 12.4,
       "counts": {
         "routes": 263,
-        "stops": 5979,
-        "trips": 74747,
+        "stops": 5986,
+        "trips": 73231,
         "services": 33,
         "timetableStops": 5745
       },
@@ -59,7 +59,7 @@
       "phone": "",
       "updated": "20260824",
       "start": "20260822",
-      "end": "20270103",
+      "end": "20270108",
       "version": "20261007130000_26N",
       "attribution": "Horaires et parcours STM, données ouvertes. Horaires et parcours STL Laval, données ouvertes. Horaires et parcours RTL Longueuil, données ouvertes.",
       "licenseUrl": "https://www.stm.info/fr/a-propos/developpeurs",
@@ -70,11 +70,11 @@
       ],
       "zoom": 12.1,
       "counts": {
-        "routes": 462,
-        "stops": 14841,
-        "trips": 258074,
-        "services": 164,
-        "timetableStops": 14772
+        "routes": 566,
+        "stops": 17686,
+        "trips": 263401,
+        "services": 167,
+        "timetableStops": 17616
       },
       "agencies": [
         {
