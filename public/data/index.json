@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-10-25T20:52:25.771Z",
+  "builtAt": "2026-10-26T13:03:46.150Z",
   "cities": [
     {
       "city": "quebec",
@@ -72,7 +72,7 @@
       "counts": {
         "routes": 566,
         "stops": 17686,
-        "trips": 263399,
+        "trips": 263402,
         "services": 167,
         "timetableStops": 17616
       },
