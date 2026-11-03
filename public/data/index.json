@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-03T14:11:25.480Z",
+  "builtAt": "2026-11-03T23:22:16.323Z",
   "cities": [
     {
       "city": "quebec",
@@ -60,7 +60,7 @@
       "updated": "20260824",
       "start": "20260824",
       "end": "20270108",
-      "version": "20261007130000_26N",
+      "version": "20261029135439_26N",
       "attribution": "Horaires et parcours STM, données ouvertes. Horaires et parcours STL Laval, données ouvertes. Horaires et parcours RTL Longueuil, données ouvertes.",
       "licenseUrl": "https://www.stm.info/fr/a-propos/developpeurs",
       "sourceUrl": "https://www.stm.info/sites/default/files/gtfs/gtfs_stm.zip",
@@ -71,10 +71,10 @@
       "zoom": 12.1,
       "counts": {
         "routes": 462,
-        "stops": 14841,
-        "trips": 258073,
-        "services": 164,
-        "timetableStops": 14772
+        "stops": 14842,
+        "trips": 265181,
+        "services": 167,
+        "timetableStops": 14773
       },
       "agencies": [
         {
