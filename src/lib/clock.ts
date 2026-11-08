@@ -103,6 +103,67 @@ function readCalendar(city: string): ServiceCalendar {
   };
 }
 
+type SourceFeed = { agency: string; prefix: string };
+
+function registryFeeds(city: string): SourceFeed[] {
+  const path = join(process.cwd(), "src", "lib", "registry.json");
+  let registry: { cities?: Array<{ id?: unknown; gtfs?: Array<{ agency?: unknown; prefix?: unknown }> }> };
+  try {
+    registry = JSON.parse(readFileSync(path, "utf8"));
+  } catch (cause) {
+    throw new Error("clock: cannot read src/lib/registry.json", { cause });
+  }
+  const row = (registry.cities || []).find((entry) => entry?.id === city);
+  const feeds = (row?.gtfs || []).map((feed) => ({
+    agency: String(feed?.agency || ""),
+    prefix: typeof feed?.prefix === "string" ? feed.prefix : "",
+  }));
+  if (feeds.length === 0) {
+    throw new Error(`clock: src/lib/registry.json lists no GTFS feeds for shipped city ${city}.`);
+  }
+  return feeds;
+}
+
+/**
+ * One calendar per *source* feed, not per city.
+ *
+ * A city can merge several agencies (Québec = RTC + STLévis). Their
+ * calendars move independently: RTC republishes forward-only, so its
+ * past days vanish on every refresh while STLévis keeps a season-long
+ * calendar. Judged as one merged calendar, a past day on which only
+ * STLévis still runs clears the "half of peak" bar, and every RTC stop
+ * the tests use (D'Youville, Youville) has no passage at all. That is
+ * the exact failure that took the publish gate down from 2026-10-25.
+ * Splitting by the registry's id prefix makes each agency prove a full
+ * service on the chosen day by itself.
+ */
+export function sourceFeeds(city: string, calendar: ServiceCalendar): Feed[] {
+  const sources = registryFeeds(city);
+  const prefixes = sources
+    .map((feed) => feed.prefix)
+    .filter(Boolean)
+    .sort((a, b) => b.length - a.length);
+  const owner = (id: string) => prefixes.find((prefix) => id.startsWith(prefix)) ?? "";
+
+  return sources.map((source) => {
+    const mine = (id: unknown) => owner(String(id)) === source.prefix;
+    const slice: ServiceCalendar = {
+      services: calendar.services.filter(mine),
+      calendar: calendar.calendar.filter((row) => mine(row.id)),
+      exceptions: calendar.exceptions.filter((row) => mine(row.id)),
+    };
+    const label = `${city}/${source.agency}`;
+    if (slice.services.length === 0) {
+      throw new Error(`clock: ${label} (prefix "${source.prefix}") ships no services in ${city}/atlas.json.`);
+    }
+    const range = coveredRange(slice);
+    if (!range) {
+      throw new Error(`clock: ${label} declares no service dates at all.`);
+    }
+    return { city: label, calendar: slice, first: range.first, last: range.last };
+  });
+}
+
 /**
  * The dates this feed says anything at all about, read from the calendar
  * rows, the calendar_dates exceptions and the synthetic `<date>daily`
@@ -144,14 +205,7 @@ function deriveServiceDay(): Date {
     throw new Error("clock: public/data/index.json lists no cities, so no service day can be derived.");
   }
 
-  const feeds: Feed[] = cities.map((city) => {
-    const calendar = readCalendar(city);
-    const range = coveredRange(calendar);
-    if (!range) {
-      throw new Error(`clock: ${city}/atlas.json declares no service dates at all.`);
-    }
-    return { city, calendar, first: range.first, last: range.last };
-  });
+  const feeds: Feed[] = cities.flatMap((city) => sourceFeeds(city, readCalendar(city)));
 
   const first = feeds.map((feed) => feed.first).sort().at(-1) as string;
   const last = feeds.map((feed) => feed.last).sort()[0];
