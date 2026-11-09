@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-08T22:02:59.198Z",
+  "builtAt": "2026-11-09T22:23:03.238Z",
   "cities": [
     {
       "city": "quebec",
@@ -10,7 +10,7 @@
       "timezone": "America/Montreal",
       "lang": "fr",
       "phone": "+1-418-627-2511",
-      "updated": "20261107",
+      "updated": "20261108",
       "start": "20260824",
       "end": "20270319",
       "version": "",
@@ -25,7 +25,7 @@
       "counts": {
         "routes": 263,
         "stops": 5985,
-        "trips": 90276,
+        "trips": 91867,
         "services": 39,
         "timetableStops": 5758
       },
@@ -59,7 +59,7 @@
       "phone": "",
       "updated": "20260824",
       "start": "20260824",
-      "end": "20270108",
+      "end": "20270404",
       "version": "20261029135439_26N",
       "attribution": "Horaires et parcours STM, données ouvertes. Horaires et parcours STL Laval, données ouvertes. Horaires et parcours RTL Longueuil, données ouvertes.",
       "licenseUrl": "https://www.stm.info/fr/a-propos/developpeurs",
@@ -70,11 +70,11 @@
       ],
       "zoom": 12.1,
       "counts": {
-        "routes": 462,
-        "stops": 14842,
-        "trips": 265181,
-        "services": 167,
-        "timetableStops": 14773
+        "routes": 459,
+        "stops": 14838,
+        "trips": 256771,
+        "services": 163,
+        "timetableStops": 14769
       },
       "agencies": [
         {
@@ -100,6 +100,14 @@
           "attribution": "Horaires et parcours RTL Longueuil, données ouvertes.",
           "licenseUrl": "https://www.rtl-longueuil.qc.ca/donnees-ouvertes",
           "sourceUrl": "https://www.rtl-longueuil.qc.ca/transit/latestfeed/RTL.zip"
+        }
+      ],
+      "staleFeeds": [
+        {
+          "agency": "STL",
+          "feed": "stl",
+          "fetchedAt": "2026-11-09T06:23:41.973Z",
+          "reason": "download failed: curl exit 22 (HTTP error response)"
         }
       ]
     },
