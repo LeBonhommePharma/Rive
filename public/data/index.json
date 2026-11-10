@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-09T22:23:03.238Z",
+  "builtAt": "2026-11-10T19:43:56.368Z",
   "cities": [
     {
       "city": "quebec",
@@ -72,7 +72,7 @@
       "counts": {
         "routes": 459,
         "stops": 14838,
-        "trips": 256771,
+        "trips": 256772,
         "services": 163,
         "timetableStops": 14769
       },
@@ -100,14 +100,6 @@
           "attribution": "Horaires et parcours RTL Longueuil, données ouvertes.",
           "licenseUrl": "https://www.rtl-longueuil.qc.ca/donnees-ouvertes",
           "sourceUrl": "https://www.rtl-longueuil.qc.ca/transit/latestfeed/RTL.zip"
-        }
-      ],
-      "staleFeeds": [
-        {
-          "agency": "STL",
-          "feed": "stl",
-          "fetchedAt": "2026-11-09T06:23:41.973Z",
-          "reason": "download failed: curl exit 22 (HTTP error response)"
         }
       ]
     },
