@@ -41,12 +41,26 @@ jobs:
       - run: npm ci
 
       # See the long scope note in the apex publish-transit.yml: this gates on
-      # `npm test` (162/162, green, and it imports the shipped static modules)
-      # rather than `npm run build`, which is red on main from 10 pre-existing
-      # TypeScript errors unrelated to the published static artifact. Nothing
-      # here is suppressed with `|| true`.
-      - name: "Gate A — tests"
-        run: npm test
+      # `npm test` (it imports the shipped static modules) rather than
+      # `npm run build`. The suite size is reported, never hard-coded. What is
+      # enforced: a summary exists, at least one test ran, every test passed.
+      # `node --test` on a glob that matches nothing exits 0 with "tests 0",
+      # so exit status alone cannot catch an empty suite.
+      - name: "Gate A — tests (count reported; zero or any failure is red)"
+        run: |
+          set -euo pipefail
+          log="$RUNNER_TEMP/rive-tests-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}.log"
+          if npm test 2>&1 | tee "$log"; then rc=0; else rc=$?; fi
+          count() { grep -E "^(# |ℹ )$1 [0-9]+$" "$log" | tail -1 | grep -oE '[0-9]+$' || true; }
+          total=$(count tests); pass=$(count pass); fail=$(count fail)
+          if [ -z "$total" ] || [ -z "$pass" ] || [ -z "$fail" ]; then
+            echo "::error::Gate A: no test summary in the output — the runner did not finish or its format changed"; exit 1
+          fi
+          echo "Gate A: $pass/$total passed, $fail failed"
+          echo "Gate A: $pass/$total tests passed" >> "$GITHUB_STEP_SUMMARY"
+          [ "$total" -gt 0 ] || { echo "::error::Gate A: 0 tests ran — an empty suite is not a pass"; exit 1; }
+          [ "$fail" -eq 0 ] && [ "$pass" -eq "$total" ] || { echo "::error::Gate A: $fail of $total tests failed"; exit 1; }
+          [ "$rc" -eq 0 ] || { echo "::error::Gate A: npm test exited $rc although every counted test passed"; exit 1; }
 
       - name: "Gate B — compose and verify artifact"
         id: build
@@ -59,7 +73,12 @@ jobs:
           [ -n "$sha" ] || sha=$(git rev-parse HEAD)
           node scripts/publish-transit.mjs compose --src . --out _stage --sha "$sha"
           node scripts/publish-transit.mjs verify-artifact --dir _stage --sha "$sha" | tee _gate.txt
-          echo "sha256=$(grep '^index-sha256=' _gate.txt | cut -d= -f2)" >> "$GITHUB_OUTPUT"
+          sha256=$(grep '^index-sha256=' _gate.txt | cut -d= -f2)
+          [ -n "$sha256" ] || { echo "::error::Gate B: verify-artifact printed no index-sha256"; exit 1; }
+          files=$(find _stage -type f | wc -l | tr -d ' ')
+          echo "Gate B: staged $files file(s), index.html sha256 $sha256"
+          [ "$files" -gt 0 ] || { echo "::error::Gate B: compose staged 0 files"; exit 1; }
+          echo "sha256=$sha256" >> "$GITHUB_OUTPUT"
 
   publish:
     needs: gate
