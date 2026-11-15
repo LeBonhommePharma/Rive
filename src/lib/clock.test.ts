@@ -3,7 +3,15 @@ import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import { describe, it } from "node:test";
 import type { Atlas } from "./atlas/types";
-import { daytimeClock, SERVICE_DAY_STAMP, sourceFeeds } from "./clock";
+import {
+  daytimeClock,
+  jointDaytimeClock,
+  SERVICE_FEEDS,
+  serviceDayOf,
+  serviceDayStamp,
+  sourceFeeds,
+  type Feed,
+} from "./clock";
 import { activeServiceIndexes } from "./services";
 
 /*
@@ -55,11 +63,58 @@ describe("derived service clock", () => {
     assert.throws(() => sourceFeeds("quebec", onlyLevis), /quebec\/RTC .*ships no services/);
   });
 
-  it("lands on a day on which every agency of every shipped city runs", () => {
+  it("gives each agency its own day even when the feed windows do not overlap", () => {
+    // The 2026-11 shape: RTL already on its winter feed while STS ended in December.
+    const winter: Feed = {
+      city: "montreal/RTL",
+      first: "20270104",
+      last: "20270404",
+      calendar: {
+        services: ["rtl:w"],
+        calendar: [{ id: "rtl:w", start: "20270104", end: "20270404", days: WEEK }],
+        exceptions: [],
+      } as unknown as Calendar,
+    };
+    const fall: Feed = {
+      city: "sherbrooke/STS",
+      first: "20260622",
+      last: "20261220",
+      calendar: {
+        services: ["f"],
+        calendar: [{ id: "f", start: "20260622", end: "20261220", days: WEEK }],
+        exceptions: [],
+      } as unknown as Calendar,
+    };
+    const stamp = (day: Date) => day.toISOString().slice(0, 10).replace(/-/g, "");
+    const w = stamp(serviceDayOf(winter));
+    const f = stamp(serviceDayOf(fall));
+    assert.ok(w >= winter.first && w <= winter.last, `RTL day ${w} outside its window`);
+    assert.ok(f >= fall.first && f <= fall.last, `STS day ${f} outside its window`);
+  });
+
+  it("refuses a feed with no weekday service, by name, rather than lowering the bar", () => {
+    const weekendOnly: Feed = {
+      city: "sherbrooke/STS",
+      first: "20261201",
+      last: "20261220",
+      calendar: {
+        services: ["we"],
+        calendar: [{ id: "we", start: "20261201", end: "20261220", days: [0, 0, 0, 0, 0, 1, 1] }],
+        exceptions: [],
+      } as unknown as Calendar,
+    };
+    assert.throws(() => serviceDayOf(weekendOnly), /sherbrooke\/STS runs no full-service weekday/);
+  });
+
+  it("refuses an unknown feed label instead of falling back to some other agency", () => {
+    assert.throws(() => daytimeClock("montreal/nope"), /unknown feed "montreal\/nope"/);
+    assert.throws(() => jointDaytimeClock(["montreal/STM"]), /at least two feeds/);
+  });
+
+  it("lands every shipped agency on a day on which that agency runs a full service", () => {
     const index = JSON.parse(readFileSync(join(process.cwd(), "public", "data", "index.json"), "utf8")) as {
       cities: Array<{ city: string }>;
     };
-    const clock = daytimeClock();
     assert.ok(index.cities.length > 0, "index.json lists no cities");
     let checked = 0;
     for (const { city } of index.cities) {
@@ -68,12 +123,27 @@ describe("derived service clock", () => {
       ) as Atlas;
       for (const feed of sourceFeeds(city, atlas)) {
         checked++;
+        assert.ok(SERVICE_FEEDS.includes(feed.city), `${feed.city} has no derived day`);
+        const stamp = serviceDayStamp(feed.city);
+        assert.ok(stamp >= feed.first && stamp <= feed.last, `${feed.city} day ${stamp} outside ${feed.first}..${feed.last}`);
         assert.ok(
-          activeServiceIndexes(feed.calendar, clock).size > 0,
-          `${feed.city} runs no service on derived day ${SERVICE_DAY_STAMP}`,
+          activeServiceIndexes(feed.calendar, daytimeClock(feed.city)).size > 0,
+          `${feed.city} runs no service on its derived day ${stamp}`,
         );
       }
     }
-    assert.ok(checked > index.cities.length - 1, `checked ${checked} feeds — expected at least one per city`);
+    assert.equal(checked, SERVICE_FEEDS.length, "every registered feed must be derived — none skipped");
+  });
+
+  it("joins only the agencies a cross-agency ride uses, each at full service", () => {
+    const clock = jointDaytimeClock(["montreal/STL", "montreal/STM"]);
+    const atlas = JSON.parse(
+      readFileSync(join(process.cwd(), "public", "data", "montreal", "atlas.json"), "utf8"),
+    ) as Atlas;
+    const feeds = sourceFeeds("montreal", atlas).filter((feed) => feed.city !== "montreal/RTL");
+    assert.equal(feeds.length, 2);
+    for (const feed of feeds) {
+      assert.ok(activeServiceIndexes(feed.calendar, clock).size > 0, `${feed.city} idle on joint day`);
+    }
   });
 });

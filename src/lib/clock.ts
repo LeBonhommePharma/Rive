@@ -52,7 +52,7 @@ export function skyMoonlightClock(): Date {
  * ------------------------------------------------------------------ */
 
 type ServiceCalendar = Pick<Atlas, "services" | "calendar" | "exceptions">;
-type Feed = { city: string; calendar: ServiceCalendar; first: string; last: string };
+export type Feed = { city: string; calendar: ServiceCalendar; first: string; last: string };
 
 const MS_DAY = 86_400_000;
 /** 20:00 UTC is mid-afternoon in Montréal under both EDT and EST. */
@@ -186,85 +186,153 @@ function coveredRange(calendar: ServiceCalendar): { first: string; last: string 
   return first && last ? { first, last } : null;
 }
 
-function windowsOf(feeds: Feed[]): string {
-  return feeds.map((feed) => `${feed.city} ${feed.first}..${feed.last}`).join(", ");
-}
-
 /**
- * A working weekday shared by every shipped feed, as far from either edge
- * of the shared window as the calendars allow.
+ * The working weekdays of ONE source feed, judged inside that feed's own
+ * window against that feed's own busiest weekday.
  *
  * "Working" means the feed runs at least half as many services as it runs
- * on its busiest weekday. That threshold is what rejects a ramp-in day, a
- * holiday, or a skeleton timetable without hard-coding which dates those
+ * on its own busiest weekday. That threshold is what rejects a ramp-in day,
+ * a holiday, or a skeleton timetable without hard-coding which dates those
  * are.
+ *
+ * Each agency is judged alone. Agencies refresh on independent schedules
+ * (in 2026-11 Montréal/RTL already ran 20270104.. while Sherbrooke/STS and
+ * Québec/STLévis ended 20261220), so demanding one date shared by every
+ * feed breaks on every refresh by construction. The bar is not lowered to
+ * find a date: a feed with no weekday at half its own peak — in practice, a
+ * feed with no weekday service at all — throws, by name.
  */
-function deriveServiceDay(): Date {
+export function workingDaysOf(feed: Feed): Date[] {
+  const weekdays: Array<{ day: Date; count: number }> = [];
+  const stop = dayOf(feed.last).getTime();
+  let scanned = 0;
+  for (let day = dayOf(feed.first); day.getTime() <= stop; day = new Date(day.getTime() + MS_DAY)) {
+    if (++scanned > MAX_SCAN_DAYS) break;
+    const afternoon = at(day, AFTERNOON_UTC_HOURS);
+    if (weekdayMon0(afternoon) > 4) continue;
+    weekdays.push({ day, count: activeServiceIndexes(feed.calendar, afternoon).size });
+  }
+
+  const peak = weekdays.reduce((best, row) => Math.max(best, row.count), 0);
+  const working = peak > 0 ? weekdays.filter((row) => row.count * 2 >= peak).map((row) => row.day) : [];
+  if (working.length === 0) {
+    throw new Error(
+      `clock: ${feed.city} runs no full-service weekday inside its own window ${feed.first}..${feed.last}.`,
+    );
+  }
+  return working;
+}
+
+/** The candidate day farthest from either edge of [first, last]. */
+function farthestFromEdges(days: Date[], first: string, last: string): Date {
+  const lo = dayOf(first).getTime();
+  const hi = dayOf(last).getTime();
+  let best = days[0];
+  let bestMargin = -Infinity;
+  for (const day of days) {
+    const margin = Math.min(day.getTime() - lo, hi - day.getTime());
+    if (margin > bestMargin) {
+      best = day;
+      bestMargin = margin;
+    }
+  }
+  return best;
+}
+
+/** A working weekday for one source feed, as far from its own window's edges as possible. */
+export function serviceDayOf(feed: Feed): Date {
+  return farthestFromEdges(workingDaysOf(feed), feed.first, feed.last);
+}
+
+type Derived = { feed: Feed; working: Date[]; day: Date };
+
+/**
+ * Every shipped source feed gets its own service day. All feeds are
+ * derived up front, and every feed that cannot produce one is named in a
+ * single error, so a broken agency fails the suite even when no test
+ * happens to exercise it.
+ */
+function deriveAll(): Map<string, Derived> {
   const cities = shippedCities();
   if (cities.length === 0) {
     throw new Error("clock: public/data/index.json lists no cities, so no service day can be derived.");
   }
 
-  const feeds: Feed[] = cities.flatMap((city) => sourceFeeds(city, readCalendar(city)));
-
-  const first = feeds.map((feed) => feed.first).sort().at(-1) as string;
-  const last = feeds.map((feed) => feed.last).sort()[0];
-  if (first > last) {
-    throw new Error(`clock: the shipped feeds share no service date (${windowsOf(feeds)}).`);
-  }
-
-  const weekdays: Array<{ day: Date; counts: number[] }> = [];
-  const stop = dayOf(last).getTime();
-  let scanned = 0;
-  for (let day = dayOf(first); day.getTime() <= stop; day = new Date(day.getTime() + MS_DAY)) {
-    if (++scanned > MAX_SCAN_DAYS) break;
-    const afternoon = at(day, AFTERNOON_UTC_HOURS);
-    if (weekdayMon0(afternoon) > 4) continue;
-    weekdays.push({
-      day,
-      counts: feeds.map((feed) => activeServiceIndexes(feed.calendar, afternoon).size),
-    });
-  }
-
-  const peak = feeds.map((_, i) => weekdays.reduce((best, row) => Math.max(best, row.counts[i]), 0));
-  const working = weekdays.filter((row) =>
-    row.counts.every((count, i) => peak[i] > 0 && count * 2 >= peak[i]),
-  );
-  if (working.length === 0) {
-    throw new Error(
-      `clock: no weekday inside ${first}..${last} runs a full service in every shipped feed (${windowsOf(feeds)}).`,
-    );
-  }
-
-  const lo = dayOf(first).getTime();
-  const hi = dayOf(last).getTime();
-  let best = working[0];
-  let bestMargin = -1;
-  for (const row of working) {
-    const margin = Math.min(row.day.getTime() - lo, hi - row.day.getTime());
-    if (margin > bestMargin) {
-      best = row;
-      bestMargin = margin;
+  const derived = new Map<string, Derived>();
+  const failures: string[] = [];
+  for (const city of cities) {
+    let feeds: Feed[];
+    try {
+      feeds = sourceFeeds(city, readCalendar(city));
+    } catch (error) {
+      failures.push((error as Error).message);
+      continue;
+    }
+    for (const feed of feeds) {
+      try {
+        const working = workingDaysOf(feed);
+        derived.set(feed.city, { feed, working, day: farthestFromEdges(working, feed.first, feed.last) });
+      } catch (error) {
+        failures.push((error as Error).message);
+      }
     }
   }
-  return best.day;
+  if (failures.length > 0) {
+    throw new Error(`clock: ${failures.length} shipped feed(s) have no usable test day:\n  ${failures.join("\n  ")}`);
+  }
+  return derived;
 }
 
-const SERVICE_DAY = deriveServiceDay();
+const DERIVED = deriveAll();
 
-/** The derived service date as YYYYMMDD — handy when a schedule assertion fails. */
-export const SERVICE_DAY_STAMP = stampOf(SERVICE_DAY);
+/** Every derived feed label ("city/agency"), in shipping order. */
+export const SERVICE_FEEDS: readonly string[] = [...DERIVED.keys()];
 
-/** Weekday afternoon in America/Montreal, on a full service day in every shipped feed. */
-export const DAYTIME_CLOCK = at(SERVICE_DAY, AFTERNOON_UTC_HOURS).toISOString();
-
-/** Same service day, later — a given time that is not "now". */
-export const EVENING_CLOCK = at(SERVICE_DAY, EVENING_UTC_HOURS).toISOString();
-
-export function daytimeClock(): Date {
-  return new Date(DAYTIME_CLOCK);
+function derivedFeed(feed: string): Derived {
+  const row = DERIVED.get(feed);
+  if (!row) {
+    throw new Error(`clock: unknown feed "${feed}" — shipped feeds are ${SERVICE_FEEDS.join(", ")}.`);
+  }
+  return row;
 }
 
-export function eveningClock(): Date {
-  return new Date(EVENING_CLOCK);
+/** The feed's derived service date as YYYYMMDD — handy when a schedule assertion fails. */
+export function serviceDayStamp(feed: string): string {
+  return stampOf(derivedFeed(feed).day);
+}
+
+/** Weekday afternoon in America/Montreal, on a full service day for that one source feed. */
+export function daytimeClock(feed: string): Date {
+  return at(derivedFeed(feed).day, AFTERNOON_UTC_HOURS);
+}
+
+/** Same service day for that feed, later — a given time that is not "now". */
+export function eveningClock(feed: string): Date {
+  return at(derivedFeed(feed).day, EVENING_UTC_HOURS);
+}
+
+/**
+ * For a test whose itinerary genuinely crosses agencies (an STL bus into
+ * the STM métro): a weekday that is a working day for EACH named feed by
+ * that feed's own standard. Only the feeds the test actually rides are
+ * joined — never every shipped feed — and if those feeds share no working
+ * day the test cannot be run honestly on the shipped data, so this throws
+ * naming them.
+ */
+export function jointDaytimeClock(feeds: readonly string[]): Date {
+  if (feeds.length < 2) {
+    throw new Error("clock: jointDaytimeClock needs at least two feeds — use daytimeClock(feed) for one.");
+  }
+  const rows = feeds.map(derivedFeed);
+  const shared = rows
+    .map((row) => new Set(row.working.map(stampOf)))
+    .reduce((acc, set) => new Set([...acc].filter((stamp) => set.has(stamp))));
+  if (shared.size === 0) {
+    const windows = rows.map((row) => `${row.feed.city} ${row.feed.first}..${row.feed.last}`).join(", ");
+    throw new Error(`clock: ${feeds.join(" + ")} share no full-service weekday (${windows}).`);
+  }
+  const first = rows.map((row) => row.feed.first).sort().at(-1) as string;
+  const last = rows.map((row) => row.feed.last).sort()[0];
+  const day = farthestFromEdges([...shared].sort().map(dayOf), first, last);
+  return at(day, AFTERNOON_UTC_HOURS);
 }

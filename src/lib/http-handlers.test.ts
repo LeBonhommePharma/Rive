@@ -22,7 +22,8 @@ async function readJson(res: Response): Promise<{ status: number; body: Record<s
 }
 
 describe("HTTP search / departures / plan handlers", () => {
-  const at = daytimeClock().toISOString();
+  const qcAt = daytimeClock("quebec/RTC").toISOString();
+  const mtlAt = daytimeClock("montreal/STM").toISOString();
 
   it("rejects an unknown city on search with 400 error JSON", async () => {
     const res = await searchGet(new Request("http://rive.test/api/search?city=ottawa&q=Youville"));
@@ -66,7 +67,7 @@ describe("HTTP search / departures / plan handlers", () => {
 
   it("returns 404 for a departures stop id that is not on the atlas", async () => {
     const res = await departuresGet(
-      new Request(`http://rive.test/api/departures?city=quebec&stop=no-such-stop&at=${encodeURIComponent(at)}`),
+      new Request(`http://rive.test/api/departures?city=quebec&stop=no-such-stop&at=${encodeURIComponent(qcAt)}`),
     );
     const { status, body } = await readJson(res);
     assert.equal(status, 404);
@@ -124,7 +125,7 @@ describe("HTTP search / departures / plan handlers", () => {
   it("returns 404 when Montréal departures are asked for a garbage stop name", async () => {
     const res = await departuresGet(
       new Request(
-        `http://rive.test/api/departures?city=montreal&q=zzzz-not-a-stop&at=${encodeURIComponent(at)}`,
+        `http://rive.test/api/departures?city=montreal&q=zzzz-not-a-stop&at=${encodeURIComponent(mtlAt)}`,
       ),
     );
     const { status, body } = await readJson(res);
@@ -141,7 +142,7 @@ describe("HTTP search / departures / plan handlers", () => {
           city: "montreal",
           from: { label: "x", lon: Number.NaN, lat: 45.5 },
           to: { label: "y", lon: -73.5, lat: 45.5 },
-          at,
+          at: mtlAt,
         }),
       }),
     );
@@ -164,7 +165,7 @@ describe("HTTP search / departures / plan handlers", () => {
     assert.ok(stop);
     const res = await departuresGet(
       new Request(
-        `http://rive.test/api/departures?city=quebec&stop=${encodeURIComponent(stop.id)}&at=${encodeURIComponent(at)}`,
+        `http://rive.test/api/departures?city=quebec&stop=${encodeURIComponent(stop.id)}&at=${encodeURIComponent(qcAt)}`,
       ),
     );
     const { status, body } = await readJson(res);
@@ -187,7 +188,7 @@ describe("HTTP search / departures / plan handlers", () => {
           city: "quebec",
           from: placeFromStop(fromHit.stop),
           to: placeFromStop(toHit.stop),
-          at,
+          at: qcAt,
         }),
       }),
     );
