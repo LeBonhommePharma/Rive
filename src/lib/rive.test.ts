@@ -7,6 +7,9 @@ import { parseTransitQuery } from "./assist";
 import { feedUrl, mergeStations } from "./bikeshare";
 import { feedUrl as shippedFeedUrl } from "../../public/Transit/bikes.js";
 import { daytimeClock, eveningClock } from "./clock";
+
+/** The source feed each fixture stop belongs to: Youville/Laval are RTC, Berri/McGill are STM. */
+const FEED = { quebec: "quebec/RTC", montreal: "montreal/STM" } as const;
 import { pickLocale } from "./i18n";
 import { connectorWalk, departuresAtStop, planTrip } from "./planner";
 import { resolveSearchAction } from "./search-submit";
@@ -526,17 +529,19 @@ describe("searchAtlas", () => {
 });
 
 describe("service day and next passages", () => {
-  const clock = daytimeClock();
+  const qcClock = daytimeClock(FEED.quebec);
+  const mtlClock = daytimeClock(FEED.montreal);
 
-  it("activates weekday services for both cities on the pinned afternoon", () => {
+  it("activates weekday services for both cities on each feed's derived afternoon", () => {
     const quebec = loadCity("quebec");
     const montreal = loadCity("montreal");
-    assert.ok(activeServiceIndexes(quebec.atlas, clock).size > 0);
-    assert.ok(activeServiceIndexes(montreal.atlas, clock).size > 0);
+    assert.ok(activeServiceIndexes(quebec.atlas, qcClock).size > 0);
+    assert.ok(activeServiceIndexes(montreal.atlas, mtlClock).size > 0);
   });
 
   it("lists official short names after now at D'Youville and Berri-UQAM", () => {
-    const now = minutesOfDay(clock);
+    const qcNow = minutesOfDay(qcClock);
+    const mtlNow = minutesOfDay(mtlClock);
     const quebec = loadCity("quebec");
     const montreal = loadCity("montreal");
     const youville = firstStopHit(quebec.atlas, "Youville");
@@ -546,15 +551,15 @@ describe("service day and next passages", () => {
       quebec.atlas,
       quebec.timetable,
       youville,
-      now,
-      activeServiceIndexes(quebec.atlas, clock),
+      qcNow,
+      activeServiceIndexes(quebec.atlas, qcClock),
     );
     const mtlPass = departuresAtStop(
       montreal.atlas,
       montreal.timetable,
       berri,
-      now,
-      activeServiceIndexes(montreal.atlas, clock),
+      mtlNow,
+      activeServiceIndexes(montreal.atlas, mtlClock),
     );
 
     assert.ok(qcPass.length > 0);
@@ -564,22 +569,25 @@ describe("service day and next passages", () => {
     const mtlNames = new Set(montreal.atlas.routes.map((route) => route.shortName));
     for (const row of qcPass) {
       assert.equal(qcNames.has(row.shortName), true);
-      assert.ok(row.depart >= now);
+      assert.ok(row.depart >= qcNow);
       assert.ok(row.shortName.length > 0);
     }
     for (const row of mtlPass) {
       assert.equal(mtlNames.has(row.shortName), true);
-      assert.ok(row.depart >= now);
+      assert.ok(row.depart >= mtlNow);
       assert.ok(row.shortName.length > 0);
       assert.ok(row.times.length > 0);
-      assert.ok(row.times[0] >= now);
+      assert.ok(row.times[0] >= mtlNow);
     }
   });
 
   it("lists passages at an explicit evening clock, not only afternoon now", () => {
-    const evening = eveningClock();
-    const at = minutesOfDay(evening);
-    assert.ok(at > minutesOfDay(clock));
+    const qcEvening = eveningClock(FEED.quebec);
+    const mtlEvening = eveningClock(FEED.montreal);
+    const qcAt = minutesOfDay(qcEvening);
+    const mtlAt = minutesOfDay(mtlEvening);
+    assert.ok(qcAt > minutesOfDay(qcClock));
+    assert.ok(mtlAt > minutesOfDay(mtlClock));
     const quebec = loadCity("quebec");
     const montreal = loadCity("montreal");
     const youville = firstStopHit(quebec.atlas, "Youville");
@@ -588,20 +596,23 @@ describe("service day and next passages", () => {
       quebec.atlas,
       quebec.timetable,
       youville,
-      at,
-      activeServiceIndexes(quebec.atlas, evening),
+      qcAt,
+      activeServiceIndexes(quebec.atlas, qcEvening),
     );
     const mtlPass = departuresAtStop(
       montreal.atlas,
       montreal.timetable,
       berri,
-      at,
-      activeServiceIndexes(montreal.atlas, evening),
+      mtlAt,
+      activeServiceIndexes(montreal.atlas, mtlEvening),
     );
     assert.ok(qcPass.length > 0);
     assert.ok(mtlPass.length > 0);
-    for (const row of [...qcPass, ...mtlPass]) {
-      assert.ok(row.depart >= at);
+    for (const row of qcPass) {
+      assert.ok(row.depart >= qcAt);
+    }
+    for (const row of mtlPass) {
+      assert.ok(row.depart >= mtlAt);
     }
   });
 
@@ -614,13 +625,13 @@ describe("service day and next passages", () => {
     assert.ok(berri);
     assert.match(youville.name, /youville/i);
     assert.match(berri.name, /berri/i);
-    const now = minutesOfDay(clock);
+    const now = minutesOfDay(qcClock);
     const away = departuresAtStop(
       quebec.atlas,
       quebec.timetable,
       youville,
       now,
-      activeServiceIndexes(quebec.atlas, clock),
+      activeServiceIndexes(quebec.atlas, qcClock),
     );
     assert.ok(away.length > 0);
     assert.ok(away.some((row) => row.times.length >= 1));
@@ -685,7 +696,7 @@ describe("nearby lines and next due", () => {
       const dest = firstStopHit(atlas, city === "quebec" ? "Universite Laval" : "McGill");
       const lines = nearbyLines(atlas, origin, dest);
       assert.ok(lines.length > 0);
-      for (const clock of [daytimeClock(), eveningClock()]) {
+      for (const clock of [daytimeClock(FEED[city]), eveningClock(FEED[city])]) {
         const at = minutesOfDay(clock);
         const active = activeServiceIndexes(atlas, clock);
         const pick = lines.find(
@@ -708,9 +719,9 @@ describe("nearby lines and next due", () => {
   });
 
   it("does not list the same bus and direction at the next two poles", () => {
-    const clock = daytimeClock();
-    const at = minutesOfDay(clock);
     for (const city of ["quebec", "montreal"] as const) {
+      const clock = daytimeClock(FEED[city]);
+      const at = minutesOfDay(clock);
       const { atlas, timetable } = loadCity(city);
       const origin = firstStopHit(atlas, city === "quebec" ? "Youville" : "Berri");
       const lines = nearbyLines(atlas, origin);
@@ -812,9 +823,9 @@ describe("nearby lines and next due", () => {
 
 describe("trajectory totals", () => {
   it("totals walk, bike, bus, and métro mixes without a golden minute count", () => {
-    const clock = daytimeClock();
-    const at = minutesOfDay(clock);
     for (const city of ["quebec", "montreal"] as const) {
+      const clock = daytimeClock(FEED[city]);
+      const at = minutesOfDay(clock);
       const { atlas, timetable } = loadCity(city);
       const from = placeFromStop(firstStopHit(atlas, city === "quebec" ? "Youville" : "Berri"));
       const to = placeFromStop(
@@ -872,9 +883,8 @@ describe("trajectory totals", () => {
 });
 
 describe("planTrip", () => {
-  const clock = daytimeClock();
-
   it("plans Youville area to Université Laval with legs whose routes exist", () => {
+    const clock = daytimeClock(FEED.quebec);
     const { atlas, timetable } = loadCity("quebec");
     const from = placeFromStop(firstStopHit(atlas, "Youville"));
     const lavalHit = searchAtlas(atlas, "Universite Laval", 20).find(
@@ -908,7 +918,7 @@ describe("planTrip", () => {
   });
 
   it("plans Berri to McGill at an explicit evening clock with legs after that clock", () => {
-    const evening = eveningClock();
+    const evening = eveningClock(FEED.montreal);
     const at = minutesOfDay(evening);
     const { atlas, timetable } = loadCity("montreal");
     const from = placeFromStop(firstStopHit(atlas, "Berri"));
@@ -971,6 +981,7 @@ describe("planTrip", () => {
   });
 
   it("plans a STLévis ride from Cégep de Lévis to the Traverse", () => {
+    const clock = daytimeClock("quebec/STLévis");
     const { atlas, timetable } = loadCity("quebec");
     const from = placeFromStop(firstStopHit(atlas, "Station Cegep de Levis"));
     const to = placeFromStop(firstStopHit(atlas, "Terminus de la Traverse"));
@@ -986,6 +997,7 @@ describe("planTrip", () => {
   });
 
   it("plans a Sherbrooke ride from the Cégep to the university", () => {
+    const clock = daytimeClock("sherbrooke/STS");
     const { atlas, timetable } = loadCity("sherbrooke");
     const from = placeFromStop(firstStopHit(atlas, "Station du Cegep"));
     const to = placeFromStop(firstStopHit(atlas, "Universite de Sherbrooke"));
@@ -1013,6 +1025,7 @@ describe("planTrip", () => {
   });
 
   it("plans an STL ride from Carrefour Laval to Terminus Montmorency", () => {
+    const clock = daytimeClock("montreal/STL");
     const { atlas, timetable } = loadCity("montreal");
     const from = placeFromStop(firstStopHit(atlas, "Carrefour Laval"));
     const to = placeFromStop(firstStopHit(atlas, "Terminus Montmorency"));
@@ -1028,6 +1041,7 @@ describe("planTrip", () => {
   });
 
   it("plans Berri area to McGill with legs whose routes exist", () => {
+    const clock = daytimeClock(FEED.montreal);
     const { atlas, timetable } = loadCity("montreal");
     const from = placeFromStop(firstStopHit(atlas, "Berri"));
     const to = placeFromStop(firstStopHit(atlas, "McGill"));
@@ -1114,7 +1128,7 @@ describe("GTFS self-update fingerprint", () => {
 
 describe("GTFS-RT overlay", () => {
   it("moves next-due with a trip delay and drops a cancellation on a real Montréal line", () => {
-    const clock = daytimeClock();
+    const clock = daytimeClock(FEED.montreal);
     const at = minutesOfDay(clock);
     const { atlas, timetable } = loadCity("montreal");
     const here = firstStopHit(atlas, "Berri");
@@ -1139,7 +1153,7 @@ describe("GTFS-RT overlay", () => {
   });
 
   it("decodes a GTFS-RT fixture then moves due and the trajectory on a real Montréal line", () => {
-    const clock = daytimeClock();
+    const clock = daytimeClock(FEED.montreal);
     const at = minutesOfDay(clock);
     const { atlas, timetable } = loadCity("montreal");
     const here = firstStopHit(atlas, "Berri");
@@ -1395,13 +1409,13 @@ function officialShape(atlas: Atlas): { routeId: string; shape: [number, number]
 
 describe("destination options are time-shortest first", () => {
   it("returns several mixes and lists the shortest door-to-door minutes first", () => {
-    const clock = daytimeClock();
-    const at = minutesOfDay(clock);
     const pairs = [
       { city: "quebec" as const, fromQ: "Youville", toQ: "Universite Laval", system: "avelo" as const },
       { city: "montreal" as const, fromQ: "Berri", toQ: "McGill", system: "bixi" as const },
     ];
     for (const pair of pairs) {
+      const clock = daytimeClock(FEED[pair.city]);
+      const at = minutesOfDay(clock);
       const { atlas, timetable } = loadCity(pair.city);
       const from = placeFromStop(firstStopHit(atlas, pair.fromQ));
       const to = placeFromStop(firstStopHit(atlas, pair.toQ));
@@ -1568,7 +1582,7 @@ describe("connected rider location", () => {
 
 describe("crowd-probe fuse", () => {
   it("moves ETA only with enough agreeing snaps and leaves official due otherwise", () => {
-    const clock = daytimeClock();
+    const clock = daytimeClock(FEED.montreal);
     const at = minutesOfDay(clock);
     const { atlas, timetable } = loadCity("montreal");
     const here = firstStopHit(atlas, "Berri");

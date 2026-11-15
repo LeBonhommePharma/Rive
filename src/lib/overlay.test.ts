@@ -332,7 +332,7 @@ describe("overlay polish and escape", () => {
 
   it("yields no trip on junk clock or dest and stays outside coverage", () => {
     const { atlas, timetable } = loadCity("quebec");
-    const clock = daytimeClock();
+    const clock = daytimeClock("quebec/RTC");
     const at = minutesOfDay(clock);
     const active = activeServiceIndexes(atlas, clock);
     const youville = firstStopFromQuery(atlas, "Youville");

@@ -21,7 +21,7 @@ const WET = {
 
 describe("Transit TUI", () => {
   it("prints a city/stop snapshot with weather and survives a second run", async () => {
-    const now = daytimeClock();
+    const now = daytimeClock("quebec/RTC");
     const first = renderTransitSnapshot({ city: "quebec", query: "Youville", weather: WET, now });
     const second = renderTransitSnapshot({ city: "quebec", query: "Youville", weather: WET, now });
     assert.match(first, /Rive/);

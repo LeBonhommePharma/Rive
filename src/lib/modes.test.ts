@@ -35,9 +35,9 @@ function nearbyPlace(from: Place, dLon: number, label: string): Place {
 
 describe("walk bike road and train mixes", () => {
   it("offers pedestrian, bike, and a distinct road option on Québec and Montréal atlases", () => {
-    const clock = daytimeClock();
-    const at = minutesOfDay(clock);
     for (const city of ["quebec", "montreal"] as const) {
+      const clock = daytimeClock(city === "quebec" ? "quebec/RTC" : "montreal/STM");
+      const at = minutesOfDay(clock);
       const { atlas, timetable } = loadCity(city);
       const from = placeFromStop(firstStop(atlas, city === "quebec" ? "Youville" : "Berri"));
       const walkTo = nearbyPlace(from, 0.007, "walk-scale");
@@ -177,7 +177,7 @@ describe("walk bike road and train mixes", () => {
 
   it("stays empty on junk places and clocks", () => {
     const { atlas, timetable } = loadCity("quebec");
-    const clock = daytimeClock();
+    const clock = daytimeClock("quebec/RTC");
     const at = minutesOfDay(clock);
     const active = activeServiceIndexes(atlas, clock);
     const dest = placeFromStop(firstStop(atlas, "Youville"));

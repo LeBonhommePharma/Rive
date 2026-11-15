@@ -6,7 +6,7 @@ import { describe, it } from "node:test";
 import { GET as citiesGet } from "@/app/api/cities/route";
 import { GET as nearbyGet } from "@/app/api/nearby/route";
 import type { Atlas, Timetable } from "./atlas/types";
-import { daytimeClock } from "./clock";
+import { daytimeClock, jointDaytimeClock } from "./clock";
 import { itineraryHasTransfer, itinerarySteps, transitLegsOf } from "./itinerary-display";
 import { nearbyBoard } from "./lines";
 import { departuresAtStop, planTrip } from "./planner";
@@ -37,12 +37,12 @@ async function readJson(res: Response): Promise<{ status: number; body: Record<s
 
 describe("remote stop board lists every unique line at a hub", () => {
   it("uniques first then caps, so a busy pole is not stuck at 12", () => {
-    const clock = daytimeClock();
-    const now = minutesOfDay(clock);
-    for (const [city, query] of [
-      ["quebec", "Youville"],
-      ["montreal", "Berri"],
+    for (const [city, query, feed] of [
+      ["quebec", "Youville", "quebec/RTC"],
+      ["montreal", "Berri", "montreal/STM"],
     ] as const) {
+      const clock = daytimeClock(feed);
+      const now = minutesOfDay(clock);
       const { atlas, timetable } = loadCity(city);
       const stop = firstStopFromQuery(atlas, query);
       assert.ok(stop, `${city} ${query}`);
@@ -76,7 +76,8 @@ describe("multi-leg itinerary steps", () => {
     const fromStop = firstStopFromQuery(atlas, "Terminus Montmorency") || firstStopFromQuery(atlas, "Montmorency");
     const toStop = firstStopFromQuery(atlas, "McGill");
     assert.ok(fromStop && toStop);
-    const clock = daytimeClock();
+    // Terminus Montmorency resolves to an STL stop and McGill to the STM métro: this ride crosses agencies.
+    const clock = jointDaytimeClock(["montreal/STL", "montreal/STM"]);
     const planned = planTrip(
       atlas,
       timetable,
@@ -185,7 +186,8 @@ describe("pan-to-city viewport hints", () => {
 });
 
 describe("nearby and cities HTTP", () => {
-  const at = daytimeClock().toISOString();
+  const qcAt = daytimeClock("quebec/RTC").toISOString();
+  const mtlAt = daytimeClock("montreal/STM").toISOString();
 
   it("rejects nearby without coordinates", async () => {
     const res = await nearbyGet(new Request("http://rive.test/api/nearby?city=quebec"));
@@ -200,7 +202,7 @@ describe("nearby and cities HTTP", () => {
     assert.ok(youville);
     const qRes = await nearbyGet(
       new Request(
-        `http://rive.test/api/nearby?city=quebec&lon=${youville.lon}&lat=${youville.lat}&at=${encodeURIComponent(at)}`,
+        `http://rive.test/api/nearby?city=quebec&lon=${youville.lon}&lat=${youville.lat}&at=${encodeURIComponent(qcAt)}`,
       ),
     );
     const q = await readJson(qRes);
@@ -214,13 +216,13 @@ describe("nearby and cities HTTP", () => {
     assert.ok(berri);
     const mRes = await nearbyGet(
       new Request(
-        `http://rive.test/api/nearby?city=montreal&lon=${berri.lon}&lat=${berri.lat}&at=${encodeURIComponent(at)}`,
+        `http://rive.test/api/nearby?city=montreal&lon=${berri.lon}&lat=${berri.lat}&at=${encodeURIComponent(mtlAt)}`,
       ),
     );
     const m = await readJson(mRes);
     assert.equal(m.status, 200);
     assert.ok((m.body.due as unknown[]).length > 0);
-    const clock = daytimeClock();
+    const clock = daytimeClock("quebec/RTC");
     const board = nearbyBoard(
       quebec.atlas,
       quebec.timetable,
