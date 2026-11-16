@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-16T06:26:06.260Z",
+  "builtAt": "2026-11-16T22:00:17.948Z",
   "cities": [
     {
       "city": "quebec",
@@ -72,7 +72,7 @@
       "counts": {
         "routes": 459,
         "stops": 14838,
-        "trips": 256774,
+        "trips": 256776,
         "services": 163,
         "timetableStops": 14769
       },
@@ -178,14 +178,6 @@
           "attribution": "Horaires et parcours STTR Trois-Rivières, données ouvertes.",
           "licenseUrl": "https://www.donneesquebec.ca/recherche/dataset/gtsf",
           "sourceUrl": "https://sttr.qc.ca/app/uploads/2026/08/sttr_aut26.zip"
-        }
-      ],
-      "staleFeeds": [
-        {
-          "agency": "STTR",
-          "feed": "sttr",
-          "fetchedAt": "2026-11-15T18:50:34.319Z",
-          "reason": "downloaded archive rejected: Command failed: unzip -Z1 .cache/gtfs/sttr.zip.part"
         }
       ]
     }
