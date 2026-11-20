@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-19T20:34:47.108Z",
+  "builtAt": "2026-11-20T20:15:43.686Z",
   "cities": [
     {
       "city": "quebec",
@@ -10,9 +10,9 @@
       "timezone": "America/Montreal",
       "lang": "fr-FR",
       "phone": "+1-418-627-2511",
-      "updated": "20261119",
+      "updated": "20261120",
       "start": "20260824",
-      "end": "20270516",
+      "end": "20270517",
       "version": "",
       "attribution": "Informations publiques du Réseau de transport de la Capitale. Horaires et parcours STLévis, données ouvertes.",
       "licenseUrl": "https://www.rtcquebec.ca/donnees-ouvertes",
@@ -24,8 +24,8 @@
       "zoom": 12.4,
       "counts": {
         "routes": 226,
-        "stops": 10063,
-        "trips": 65816,
+        "stops": 10065,
+        "trips": 66161,
         "services": 32,
         "timetableStops": 5763
       },
