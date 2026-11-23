@@ -22,6 +22,19 @@ export function montrealYyyymmdd(date = new Date()) {
 }
 
 /**
+ * The last day a feed can show riders departures: the earlier of its declared
+ * feed_end_date and the last date its own calendar schedules. A declared end
+ * can outrun the schedule (RTC declared 20270518 with nothing after 20270319),
+ * and an end that does would advertise months of blank boards as covered.
+ */
+export function feedCoverageEnd(declared, derived) {
+  const a = yyyymmddStamp(declared);
+  const b = yyyymmddStamp(derived);
+  if (a && b) return a < b ? a : b;
+  return a || b;
+}
+
+/**
  * Latest YYYYMMDD from calendar.end, exception dates, and meta.end.
  * @param {{calendar?: Array<{end?: string}>, exceptions?: Array<{date?: string}>, meta?: {end?: string}}} [pack]
  */

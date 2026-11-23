@@ -1803,8 +1803,11 @@ describe("3D pitch and Laval 13 catchment", () => {
     const { atlas } = loadCity("quebec");
     const dest = firstStopHit(atlas, "Universite Laval");
     const near = nearbyStops(atlas.stops, dest, 1200, 40);
+    // By public line number, not route_id: RTC renumbered its ids (1-13 -> 13) in the 2026-11-18 feed.
+    const rtc13 = atlas.routes.find((route) => route.agencyId === "RTC" && route.shortName === "13");
+    assert.ok(rtc13, "Québec atlas ships RTC line 13");
     assert.ok(
-      near.some((stop) => (stop.routes || []).includes("1-13")),
+      near.some((stop) => (stop.routes || []).includes(rtc13.id)),
       "Université Laval catchment must include RTC 13 (Peps/Foresterie)",
     );
     const src = readFileSync(join(process.cwd(), "public", "Transit", "app.js"), "utf8");
