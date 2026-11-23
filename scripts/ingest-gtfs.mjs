@@ -29,7 +29,8 @@ import {
   regionsFromCatalog,
   selectRegions,
 } from "./gtfs-catalog.mjs";
-import { assertCoverageIncludesToday } from "./gtfs-coverage.mjs";
+import { assertCoverageIncludesToday, feedCoverageEnd } from "./gtfs-coverage.mjs";
+import { collapseLoneBusStations } from "./gtfs-stations.mjs";
 import {
   EXIT_FAILED,
   buildIndexPayload,
@@ -604,6 +605,13 @@ async function ingestFeed(region, feed, dir) {
     stop.children = kids;
   }
 
+  const routeTypeById = new Map(routes.map((route) => [route.id, route.type]));
+  const { stops: packedStops, collapsed } = collapseLoneBusStations(stops, routeTypeById);
+  if (collapsed > 0) {
+    console.log(`  ${feed.slug}: folded ${collapsed} single-stop bus stations into their stop`);
+    stops.splice(0, stops.length, ...packedStops);
+  }
+
   const serviceIds = [];
   const serviceIndex = new Map();
   function idxService(id) {
@@ -692,7 +700,7 @@ async function ingestFeed(region, feed, dir) {
     phone: agency.agency_phone || "",
     updated: feedInfo.feed_start_date || derivedStart,
     start: feedInfo.feed_start_date || derivedStart,
-    end: feedInfo.feed_end_date || derivedEnd,
+    end: feedCoverageEnd(feedInfo.feed_end_date, derivedEnd),
     version: feedInfo.feed_version || "",
     attribution: feed.attribution,
     licenseUrl: feed.licenseUrl,

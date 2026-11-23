@@ -12,7 +12,7 @@
       "phone": "+1-418-627-2511",
       "updated": "20261121",
       "start": "20260824",
-      "end": "20270518",
+      "end": "20270319",
       "version": "",
       "attribution": "Informations publiques du Réseau de transport de la Capitale. Horaires et parcours STLévis, données ouvertes.",
       "licenseUrl": "https://www.rtcquebec.ca/donnees-ouvertes",
@@ -24,7 +24,7 @@
       "zoom": 12.4,
       "counts": {
         "routes": 226,
-        "stops": 10067,
+        "stops": 5867,
         "trips": 66200,
         "services": 32,
         "timetableStops": 5763
