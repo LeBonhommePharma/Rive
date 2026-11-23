@@ -10,7 +10,7 @@ import {
 
 export const runtime = "nodejs";
 
-export async function GET(_request?: Request) {
+export async function GET(_request: Request) {
   let shipped: Array<{ city?: unknown; name?: unknown; center?: unknown; zoom?: unknown }> = [];
   try {
     const index = JSON.parse(readFileSync(join(process.cwd(), "public", "data", "index.json"), "utf8")) as {
