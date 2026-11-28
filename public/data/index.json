@@ -1,5 +1,5 @@
 {
-  "builtAt": "2026-11-27T21:15:17.889Z",
+  "builtAt": "2026-11-28T07:48:20.857Z",
   "cities": [
     {
       "city": "quebec",
@@ -139,6 +139,14 @@
           "attribution": "Horaires et parcours STS Sherbrooke, données ouvertes.",
           "licenseUrl": "https://www.sts.qc.ca/a-propos/la-sts/donnees-ouvertes/",
           "sourceUrl": "https://gtfs.sts.qc.ca:8443/gtfs/client/GTFS_clients.zip"
+        }
+      ],
+      "staleFeeds": [
+        {
+          "agency": "STS",
+          "feed": "sts",
+          "fetchedAt": "2026-11-27T21:15:16.386Z",
+          "reason": "download failed: curl exit 6 (could not resolve host)"
         }
       ]
     },
